@@ -1,0 +1,7 @@
+discord.py>=2.3
+google-genai>=1.0
+python-dotenv>=1.0
+httpx>=0.27
+ddgs>=9.0
+beautifulsoup4>=4.12
+opencc-python-reimplemented>=0.1.7

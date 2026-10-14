@@ -1,0 +1,10 @@
+# 金鑰與本機設定
+.env
+
+# Python 快取
+__pycache__/
+*.pyc
+
+# 學生提問紀錄與截圖描述（含學生資料，不上傳）
+questions_log.csv
+image_notes.json
