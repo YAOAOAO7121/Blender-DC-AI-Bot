@@ -6,6 +6,67 @@ python bot.py
 ```
 （要先開 Ollama；設定都在 `.env`，可以調的選項看 `.env.example`）
 
+## 在新電腦架設（換電腦／換更強的本地模型）
+> ⚠️ 同一個 Discord Token 只能在一台電腦跑，**先關掉舊電腦的機器人**，不然兩台會同時回答。
+
+### 1. 確認顯卡
+終端機輸入 `nvidia-smi`，看顯卡型號和記憶體（例如 `24564MiB` = 24GB），第 4 步要用。
+
+### 2. 安裝環境
+1. 安裝 Python 3.10 以上（安裝時勾「Add Python to PATH」）
+2. 安裝 Git，下載程式並裝套件：
+   ```
+   git clone https://github.com/YAOAOAO7121/Blender-DC-AI-Bot.git
+   cd Blender-DC-AI-Bot
+   pip install -r requirements.txt
+   ```
+3. 安裝 [Ollama](https://ollama.com)
+4. （要用作業健檢才需要）安裝 Blender；不是裝在 `C:\Program Files\Blender Foundation\` 就在 `.env` 填 `BLENDER_PATH`，不用就設 `BLEND_CHECK=0`
+
+### 3. 帶過去的檔案（不在 GitHub 上，要自己複製）
+- **`.env`（必要）**：有 Discord Token 和 Gemini 金鑰，用隨身碟或私人雲端複製，**不要用 Discord 或公開的地方傳**
+- 想延續舊紀錄才需要：`questions_log.csv`、`feedback_log.csv`、`answer_index.json`、`review_index.json`、`image_notes.json`、`knowledge_待審核/`、`knowledge_已退回/`
+
+### 4. 依顯卡挑本地模型
+| 顯卡記憶體 | 建議模型 | 下載指令 | `LOCAL_CTX` |
+|---|---|---|---|
+| 4–8GB | Qwen 3 4B / 8B | `ollama pull qwen3:4b` | 4096 |
+| 12–16GB | Qwen 3.5 9B | `ollama pull qwen3.5:9b` | 8192 |
+| 24GB（RTX 3090/4090） | Qwen 3.6 27B | `ollama pull qwen3.6:27b` | 16384 |
+| 32GB（RTX 5090） | Qwen 3.6 35B | `ollama pull qwen3.6:35b` | 16384 |
+| 80GB 以上 | Qwen 3.5 122B | `ollama pull qwen3.5:122b` | 32768 |
+
+- 模型要**整個放進顯卡**：先 `ollama run 模型名稱` 問一句，再開另一個終端機打 `ollama ps`，顯示 `100% GPU` 才 OK；出現 CPU/GPU 混合就換小一級
+- 建議用 Qwen 系列：中文好，而且名稱含 `qwen3` 的模型，程式會自動關掉「思考模式」
+- **不建議** `gemma4`、`deepseek-r1` 這類會思考的模型（可能把思考過程當答案）；要用 gemma4 得先把它加進 `llm.py` 的 `THINKING_MODEL` 名單
+- `qwen2.5:72b` 也能用（不用改程式），但要約 48GB 顯卡記憶體，而且比 `qwen3.5:27b` 舊、慢
+- 模型名稱更新很快，下載前到 [ollama.com/library](https://ollama.com/library) 確認
+
+### 5. 修改 `.env`
+```
+LOCAL_MODEL=qwen3.6:27b      ← 換成第 4 步選的模型
+LOCAL_CTX=16384              ← 照上表
+USE_LOCAL=1
+LOCAL_JUDGE=1
+LOCAL_KEEP_RATIO=0.5         ← 大模型比較不會抓錯，可以多看幾段資料（小模型維持 0.7）
+```
+舊的 `.env` 如果沒有 v13 的選項（`FEEDBACK`、`REVIEW_CHANNEL_ID`、`REVIEWER_IDS`、`BLEND_CHECK`…），從 `.env.example` 補上。
+
+### 6. 讓模型常駐顯卡
+Ollama 預設閒置 5 分鐘就卸載模型，大模型重新載入很慢，可能超過程式 180 秒逾時而改用 Gemini。
+Windows 新增系統環境變數 `OLLAMA_KEEP_ALIVE`，值設 `-1`（永不卸載），然後重開 Ollama。
+
+### 7. 測試再上線
+```
+python tests/test_persona.py --local     測語氣和速度
+python knowledge.py 布林運算怎麼用         測知識庫查詢
+python bot.py                            正式啟動
+```
+啟動訊息出現「本地模型就緒：模型名稱」就成功；出現「⚠️ 找不到本地模型」代表 Ollama 沒開或名稱打錯（會改用 Gemini）。
+
+> 換了強的本地模型，**看截圖、網路資料整理成筆記、本地答不出來時的備援**仍然用 Gemini，所以 `GEMINI_API_KEY` 還是要填。
+> 電腦要一直開著機器人才在線上；學生那邊不用裝任何東西。
+
 ## 檔案說明
 | 檔案／資料夾 | 用途 |
 |---|---|
