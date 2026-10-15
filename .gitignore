@@ -8,3 +8,8 @@ __pycache__/
 # 學生提問紀錄與截圖描述（含學生資料，不上傳）
 questions_log.csv
 image_notes.json
+
+# 回饋與審核紀錄（含學生資料，不上傳）
+feedback_log.csv
+answer_index.json
+review_index.json

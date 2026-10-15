@@ -14,7 +14,12 @@ Blender 課程 AI 教學助理 — 測試版 v3
   簡單問題會像小樽在 Discord 聊天一樣拆成幾則短訊息
 - 學生傳 Blender 截圖 → Gemini 先看圖描述畫面和可能的問題，再走一般的回答流程
 - 回答下方附上延伸教學連結（官方手冊＋教學影片）
+- 回答精簡：只用最相關的 1～2 段資料、排錯題不附延伸教學、刪掉禁用口頭禪（v12）
 - 追問時先用「最新那句」查資料，查不到才合併第一題一起查（避免一直拿到第一題的資料）
+- 回答下方有 👍/👎，學生按了記到 feedback_log.csv；按 👎 會通知審核頻道（v13）
+- 老師審核頻道（REVIEW_CHANNEL_ID）：網路整理的筆記先貼到這裡，老師按 ✅ 才入庫、❌ 退回；
+  回覆那則訊息可以補充內容或上傳改好的 .md（v13）
+- 作業健檢：學生丟 .blend → 背景開 Blender 檢查常見問題，回報告＋預覽圖（v13）
 """
 import asyncio
 import contextvars
@@ -29,6 +34,8 @@ from dotenv import load_dotenv
 
 load_dotenv()   # 要在 import llm 之前載入設定
 
+import feedback
+import homework_check as homework_check_module
 import llm
 import web_research
 from knowledge import KnowledgeBase, classify, format_context
@@ -45,7 +52,17 @@ PERSONA = os.getenv("PERSONA", "1") == "1"              # 1 = 用小樽的語氣
 SPLIT_SHORT = os.getenv("SPLIT_SHORT", "1") == "1"      # 1 = 簡短回答拆成幾則短訊息送出
 VISION = os.getenv("VISION", "1") == "1"                # 1 = 看學生傳的截圖（用 Gemini，圖片會傳給 Google）
 TUTORIAL_LINKS = os.getenv("TUTORIAL_LINKS", "1") == "1"  # 1 = 回答下方附延伸教學連結
-LOCAL_KEEP_RATIO = float(os.getenv("LOCAL_KEEP_RATIO", "0.6"))  # 本地模型只看分數 ≥ 最高分×這個比例的資料
+LOCAL_KEEP_RATIO = float(os.getenv("LOCAL_KEEP_RATIO", "0.7"))  # 只用分數 ≥ 最高分×這個比例的資料（本地模型和 Gemini 都是）
+TUTORIAL_MAX = int(os.getenv("TUTORIAL_MAX", "2"))               # 延伸教學最多幾個連結
+BANNED_PHRASES = ["妥妥的", "莫慌莫慌", "莫慌"]                   # 模型還是講出來的話，送出前直接刪掉
+FEEDBACK = os.getenv("FEEDBACK", "1") == "1"            # 1 = 回答下方加 👍/👎
+REVIEW_CHANNEL_ID = int(os.getenv("REVIEW_CHANNEL_ID") or 0)   # 老師審核頻道；0 = 不用審核頻道
+REVIEWER_IDS = {int(x) for x in re.findall(r"\d+", os.getenv("REVIEWER_IDS", ""))}  # 誰可以審核；空白 = 審核頻道裡的人都可以
+BLEND_CHECK = os.getenv("BLEND_CHECK", "1") == "1"      # 1 = 學生丟 .blend 就做作業健檢
+if REVIEW_CHANNEL_ID:
+    AUTO_SAVE_WEB = False   # 有審核頻道 → 網路筆記一律先等老師審核
+THUMBS_UP, THUMBS_DOWN = "👍", "👎"
+APPROVE, REJECT = "✅", "❌"
 MAX_IMAGES = 3
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
@@ -54,6 +71,7 @@ LOG_FILE = os.path.join(BASE, "questions_log.csv")
 LOG_HEADER = ["時間", "學生", "提問", "回答", "討論串ID", "參考資料", "分類"]
 WEB_NOTE_DIR = os.path.join(BASE, "knowledge", "網路整理")
 DRAFT_DIR = os.path.join(BASE, "knowledge_待審核")
+REJECT_DIR = os.path.join(BASE, "knowledge_已退回")
 PERSONA_DIR = os.path.join(BASE, "persona")
 _followup = contextvars.ContextVar("followup", default=False)   # 這題是不是討論串裡的追問
 IMAGE_NOTE_FILE = os.path.join(BASE, "image_notes.json")   # 截圖的看圖描述（追問時要用）
@@ -115,19 +133,27 @@ LOCAL_RULES = """請只根據上面的【課程資料】回答【學生的問題
 LOCAL_PARTIAL = "\n5. 資料只能回答一部分時，只回答那部分，最後加一句「其他細節課程資料沒寫到，可以再問老師或助教喔」"
 # 小模型照「範例」學格式比照規則學得好；範例內容故意跟 Blender 操作無關，避免被抄進答案
 LOCAL_TONE = """
-5. 口氣輕鬆像朋友，句尾可以加「唷」「囉~」「XD」；不要自稱小樽或老師
-6. 資料裡有寫原因的話，一定要先用一兩句話講「為什麼會這樣」，再講步驟
-7. 格式照下面這個範例（範例的內容跟這題無關，只學它的格式和口氣）：
-同學安安~ 這個狀況很常見 先別緊張XD
-【原因】這裡用一兩句話說明為什麼會發生
-【解決步驟】
-1. 第一個步驟寫在這一行
-2. 第二個步驟寫在這一行，關鍵的地方可以提醒「務必記得」
-3. 第三個步驟寫在這一行
-如果畫面跟預期不一樣先別緊張XD
-試試看，有問題再來問~
-8. 最後一行二選一：資料完整回答了就寫「試試看，有問題再來問~」；
-   資料只能回答一部分就改寫「其他細節課程資料沒寫到 可以再問老師或助教唷」"""
+5. 第一句直接講最可能的原因和解法，不要開場白、不要安撫的話
+6. 口氣輕鬆像朋友，句尾偶爾加「XD」「唷」；不要自稱小樽或老師；不要用「妥妥的」
+7. 越短越好：簡單問題 2～4 行；要好幾個步驟才用 1. 2. 3. 編號，最多 5 步
+8. 資料只能回答一部分時，最後加一句「其他細節課程資料沒寫到 可以再問老師或助教唷」"""
+
+
+def focus_hits(hits):
+    """只留真的在講這題的資料：分數 ≥ 最高分×LOCAL_KEEP_RATIO，最多 2 段
+    （例：問「選不到物件」時，不要把「材質複製給其他物件」那段也塞給 AI）"""
+    if not hits:
+        return hits
+    best = hits[0][0]
+    return [h for h in hits if h[0] >= best * LOCAL_KEEP_RATIO][:2]
+
+
+def clean_answer(text):
+    """刪掉禁用的口頭禪，順便清掉刪完後多出來的空白和標點"""
+    for p in BANNED_PHRASES:
+        text = re.sub(re.escape(p) + r"[！!~～。.]*", "", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
 def tidy_local(text):
@@ -277,9 +303,7 @@ def local_rules():
 async def answer_from_kb(messages, hits, query):
     """知識庫有資料：先用本地模型，不行再用 Gemini
     回傳 (None, None) 代表本地模型判斷資料不足 → 呼叫端改上網查"""
-    context = format_context(hits)
-    best = hits[0][0]
-    local_context = format_context([h for h in hits if h[0] >= best * LOCAL_KEEP_RATIO][:2])
+    context = local_context = format_context(hits)   # hits 已經在 on_message 用 focus_hits 篩過
     if USE_LOCAL:
         try:
             if LOCAL_JUDGE and not await llm.local_judge(query, local_context):
@@ -358,9 +382,17 @@ async def answer_from_web(messages, question, thread):
         saved = save_web_note(data.get("note_title") or question[:20], data["note"], used, question)
         print(f"[知識庫] 新增筆記：{saved}")
         log_src += f"｜存檔：{saved}"
+        if REVIEW_CHANNEL_ID:
+            try:
+                await post_review(os.path.join(BASE, saved), question, used, thread)
+            except Exception as e:
+                print(f"[審核] 貼到審核頻道失敗：{e!r}")
         if SHOW_SOURCES:
-            where = "知識庫" if AUTO_SAVE_WEB else "待審核資料夾"
-            extra += f"\n-# 📝 已整理存進{where}：{saved}（尚未經老師審核）"
+            if REVIEW_CHANNEL_ID:
+                extra += "\n-# 📝 已把這題整理成筆記，等老師審核後就會加進課程資料"
+            else:
+                where = "知識庫" if AUTO_SAVE_WEB else "待審核資料夾"
+                extra += f"\n-# 📝 已整理存進{where}：{saved}（尚未經老師審核）"
     elif SHOW_SOURCES:
         extra += "\n-# 網路資料不足以確定答案，這次沒有存進知識庫"
     return data["answer"], extra, log_src
@@ -368,14 +400,16 @@ async def answer_from_web(messages, question, thread):
 
 async def send_long(channel, text):
     """Discord 單則訊息上限 2000 字，超過就分段送（盡量在換行處切）"""
+    """回傳最後送出的那則訊息（要在上面加 👍/👎）"""
+    last = None
     while text:
         if len(text) <= 1900:
-            await channel.send(text)
-            return
+            return await channel.send(text)
         cut = text.rfind("\n", 0, 1900)
         cut = cut if cut > 500 else 1900
-        await channel.send(text[:cut])
+        last = await channel.send(text[:cut])
         text = text[cut:].lstrip("\n")
+    return last
 
 
 def split_for_chat(answer):
@@ -391,13 +425,257 @@ def split_for_chat(answer):
 async def send_answer(thread, answer, extra):
     parts = split_for_chat(answer) if PERSONA and SPLIT_SHORT else None
     if not parts:
-        await send_long(thread, answer + extra)
-        return
+        return await send_long(thread, answer + extra)
+    msg = None
     for i, line in enumerate(parts):
         if i:
             async with thread.typing():
                 await asyncio.sleep(min(0.5 + len(line) * 0.04, 2.0))   # 模擬打字的停頓
-        await thread.send(line + (extra if i == len(parts) - 1 else ""))
+        msg = await thread.send(line + (extra if i == len(parts) - 1 else ""))
+    return msg
+
+
+# ───────────── 👍/👎 回饋 ─────────────
+
+answers = feedback.JsonIndex("answer_index.json")    # 回答訊息ID → 提問資訊
+reviews = feedback.JsonIndex("review_index.json")    # 審核頻道訊息ID → 待審核筆記
+
+
+async def add_feedback_buttons(msg, message, question, category, source, thread):
+    """在回答的最後一則訊息加上 👍/👎，並記住這則是在回答什麼"""
+    if not (FEEDBACK and msg):
+        return
+    answers.set(msg.id, {
+        "question": question[:500], "category": category, "source": source[:300],
+        "asker_id": message.author.id, "asker": str(message.author),
+        "thread_id": thread.id, "time": datetime.datetime.now().isoformat(timespec="seconds"),
+    })
+    try:
+        await msg.add_reaction(THUMBS_UP)
+        await msg.add_reaction(THUMBS_DOWN)
+    except discord.HTTPException as e:
+        print(f"[回饋] 加不了反應（機器人需要「新增反應」權限）：{e}")
+
+
+async def handle_feedback(payload, info, added):
+    emoji = str(payload.emoji)
+    user = payload.member or bot.get_user(payload.user_id) or await bot.fetch_user(payload.user_id)
+    is_asker = payload.user_id == info.get("asker_id")
+    feedback.log_feedback(str(user), "按下" if added else "取消", emoji, is_asker, info,
+                          payload.channel_id, payload.message_id)
+    print(f"[回饋] {user} {'按下' if added else '取消'} {emoji}：{info.get('question', '')[:30]}")
+    if not (added and emoji == THUMBS_DOWN) or info.get("reported"):
+        return
+    info["reported"] = True     # 同一則回答只通知一次
+    answers.set(payload.message_id, info)
+    thread = bot.get_channel(payload.channel_id)
+    if thread is None:
+        try:
+            thread = await bot.fetch_channel(payload.channel_id)
+        except discord.HTTPException:
+            thread = None
+    if thread and is_asker:
+        await thread.send("收到QQ 哪裡不對或看不懂 可以直接在這裡補充 我再想想～也會請老師看一下"
+                          if PERSONA else "收到回饋，可以在這裡補充哪裡不清楚，也會轉給老師確認。")
+    review = bot.get_channel(REVIEW_CHANNEL_ID) if REVIEW_CHANNEL_ID else None
+    if review:
+        link = f"https://discord.com/channels/{payload.guild_id}/{payload.channel_id}/{payload.message_id}"
+        await review.send(
+            f"👎 **有同學覺得這題回答不好**（{'提問的同學' if is_asker else str(user)}）\n"
+            f"> {info.get('question', '')[:300]}\n"
+            f"-# 🏷️ {info.get('category', '')}｜來源：{info.get('source', '')[:120]}\n{link}")
+
+
+# ───────────── 老師審核頻道 ─────────────
+
+def note_body(path):
+    """筆記內容（拿掉開頭的 <!-- 來源資訊 -->），給審核頻道預覽用"""
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    return re.sub(r"<!--.*?-->\s*", "", text, count=1, flags=re.S).strip()
+
+
+async def post_review(path, question, pages, thread=None):
+    """把待審核的筆記貼到審核頻道，附上 .md 檔，加 ✅/❌"""
+    channel = bot.get_channel(REVIEW_CHANNEL_ID)
+    if channel is None:
+        print(f"⚠️ 找不到審核頻道 {REVIEW_CHANNEL_ID}（ID 對嗎？機器人看得到那個頻道嗎？）")
+        return
+    body = note_body(path)
+    preview = body if len(body) <= 1100 else body[:1100] + "\n…（完整內容看附檔）"
+    head = [f"📝 **新的網路筆記待審核**：`{os.path.basename(path)}`"]
+    if question:
+        head.append(f"學生的問題：{question[:200]}")
+    if thread is not None:
+        head.append(f"討論串：{thread.jump_url}")
+    if pages:
+        head.append("參考網頁：" + "　".join(f"<{p['url']}>" for p in pages[:3]))
+    head.append(f"-# {APPROVE} 加進知識庫｜{REJECT} 退回｜回覆這則訊息可以補充內容，或上傳改好的 .md 取代")
+    text = "\n".join(head) + "\n\n" + preview
+    msg = await channel.send(text[:1990], file=discord.File(path))
+    reviews.set(msg.id, {"path": os.path.relpath(path, BASE), "status": "pending", "question": question[:300]})
+    await msg.add_reaction(APPROVE)
+    await msg.add_reaction(REJECT)
+
+
+async def post_pending_drafts():
+    """啟動時：待審核資料夾裡還沒貼過的筆記（例如之前存的）補貼到審核頻道"""
+    if not (REVIEW_CHANNEL_ID and os.path.isdir(DRAFT_DIR)):
+        return
+    posted = {v["path"] for _, v in reviews.items()}
+    for name in sorted(os.listdir(DRAFT_DIR)):
+        rel = os.path.relpath(os.path.join(DRAFT_DIR, name), BASE)
+        if name.endswith(".md") and rel not in posted:
+            m = re.search(r"學生原始提問：(.*)", open(os.path.join(DRAFT_DIR, name), encoding="utf-8").read())
+            await post_review(os.path.join(BASE, rel), m.group(1) if m else "", [])
+
+
+def is_reviewer(user_id):
+    return not REVIEWER_IDS or user_id in REVIEWER_IDS
+
+
+def move_note(rel, folder):
+    src = os.path.join(BASE, rel)
+    os.makedirs(folder, exist_ok=True)
+    dst = os.path.join(folder, os.path.basename(src))
+    if os.path.exists(dst):
+        root, ext = os.path.splitext(dst)
+        dst = f"{root}_{datetime.datetime.now():%H%M%S}{ext}"
+    os.replace(src, dst)
+    return os.path.relpath(dst, BASE)
+
+
+async def handle_review(payload, info):
+    emoji = str(payload.emoji)
+    if emoji not in (APPROVE, REJECT) or info.get("status") != "pending":
+        return
+    if not is_reviewer(payload.user_id):
+        return
+    if not os.path.exists(os.path.join(BASE, info["path"])):
+        info["status"] = "missing"
+        reviews.set(payload.message_id, info)
+        return
+    user = payload.member or await bot.fetch_user(payload.user_id)
+    if emoji == APPROVE:
+        new = move_note(info["path"], WEB_NOTE_DIR)
+        info.update(status="approved", path=new, by=str(user))
+        status = f"✅ **已加進知識庫**（{user.display_name}）→ `{new}`"
+    else:
+        new = move_note(info["path"], REJECT_DIR)
+        info.update(status="rejected", path=new, by=str(user))
+        status = f"❌ **已退回**（{user.display_name}），沒有加進知識庫 → `{new}`"
+    reviews.set(payload.message_id, info)
+    print(f"[審核] {status}")
+    channel = bot.get_channel(payload.channel_id)
+    try:
+        msg = await channel.fetch_message(payload.message_id)
+        await msg.edit(content=(status + "\n" + msg.content)[:2000])
+    except discord.HTTPException as e:
+        print(f"[審核] 更新訊息失敗：{e}")
+
+
+async def handle_review_reply(message):
+    """老師回覆審核訊息：附 .md → 整份取代；打字 → 加在筆記最後的「老師補充」"""
+    ref = message.reference
+    info = reviews.get(ref.message_id) if ref else None
+    if not info or not is_reviewer(message.author.id):
+        return
+    if info.get("status") != "pending":
+        await message.reply("這篇已經審核過了，要改的話直接改知識庫裡的檔案唷", mention_author=False)
+        return
+    path = os.path.join(BASE, info["path"])
+    md = [a for a in message.attachments if a.filename.lower().endswith((".md", ".txt"))]
+    if md:
+        new_text = (await md[0].read()).decode("utf-8-sig", "replace").strip()
+        with open(path, encoding="utf-8") as f:
+            meta = re.search(r"<!--.*?-->", f.read(), flags=re.S)
+        if meta and "<!--" not in new_text:     # 保留原本的來源資訊
+            title, _, rest = new_text.partition("\n")
+            new_text = f"{title}\n\n{meta.group(0)}\n\n{rest.strip()}" if title.startswith("# ") \
+                else f"{meta.group(0)}\n\n{new_text}"
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(new_text + "\n")
+        done = "已用你上傳的檔案取代"
+    elif message.content.strip():
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"\n## 老師補充\n\n{message.content.strip()}\n")
+        done = "已加到筆記最後的「老師補充」"
+    else:
+        return
+    await message.add_reaction("📝")
+    await message.reply(f"{done}，確認沒問題再按原訊息的 {APPROVE}", mention_author=False)
+
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    if payload.user_id == bot.user.id:
+        return
+    try:
+        if REVIEW_CHANNEL_ID and payload.channel_id == REVIEW_CHANNEL_ID:
+            info = reviews.get(payload.message_id)
+            if info:
+                await handle_review(payload, info)
+            return
+        info = answers.get(payload.message_id)
+        if info and str(payload.emoji) in (THUMBS_UP, THUMBS_DOWN):
+            await handle_feedback(payload, info, added=True)
+    except Exception as e:
+        print(f"[反應] 處理失敗：{e!r}")
+
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    info = answers.get(payload.message_id)
+    if info and str(payload.emoji) in (THUMBS_UP, THUMBS_DOWN) and payload.user_id != bot.user.id:
+        try:
+            await handle_feedback(payload, info, added=False)
+        except Exception as e:
+            print(f"[反應] 處理失敗：{e!r}")
+
+
+# ───────────── 作業健檢 ─────────────
+
+def blend_attachments(message):
+    return [a for a in message.attachments if a.filename.lower().endswith(".blend")]
+
+
+async def run_homework_check(message, thread, att):
+    if not BLEND_CHECK:
+        return
+    if att.size > homework_check_module.MAX_MB * 1024 * 1024:
+        await thread.send(f"這個檔案超過 {homework_check_module.MAX_MB}MB 太大了QQ 我先不檢查")
+        return
+    if not homework_check_module.find_blender():
+        await thread.send("作業健檢暫時不能用（這台電腦找不到 Blender），先找助教或老師看唷")
+        print("⚠️ 找不到 Blender：請在 .env 設定 BLENDER_PATH")
+        return
+    waiting = homework_check_module.queue_size()
+    await thread.send(f"🩺 收到 `{att.filename}`！檢查中，大概半分鐘～"
+                      + (f"（前面還有 {waiting} 個檔案在排隊）" if waiting else ""))
+    # 討論串第一則是檔案、沒有文字 → 存一段說明，之後追問時 AI 才知道前面在幹嘛
+    save_image_note(message.id, (message.content.strip() + "\n" if message.content.strip() else "")
+                    + f"（學生上傳了作業檔 {att.filename}，請機器人做作業健檢）")
+    tmp = None
+    try:
+        async with thread.typing():
+            report, preview, tmp = await homework_check_module.run_check(await att.read(), att.filename)
+        text, summary = homework_check_module.format_report(report, att.filename)
+        msg = await send_long(thread, text)
+        if preview:
+            await thread.send(file=discord.File(preview, filename="健檢預覽.png"))
+        await thread.send("-# 有看不懂的地方 直接在這個討論串問我唷")
+        print(f"[作業健檢] {message.author} {att.filename} → {summary}")
+        await add_feedback_buttons(msg, message, f"［作業健檢］{att.filename}", "作業健檢", summary, thread)
+        log_question(str(message.author), f"［作業健檢］{att.filename} {message.content}".strip(),
+                     text, thread.id, f"[作業健檢] {summary}", "作業健檢")
+    except PermissionError:
+        print("⚠️ questions_log.csv 被其他程式開著（Excel？），這筆沒記到")
+    except Exception as e:
+        print(f"[作業健檢] 失敗：{e!r}"[:500])
+        await thread.send("檢查的時候出錯了QQ 可能檔案壞掉、太大，或是用比較新的 Blender 存的，先找助教看看唷")
+    finally:
+        if tmp:
+            homework_check_module.cleanup(tmp)
 
 
 # ───────────── 截圖 ─────────────
@@ -451,8 +729,11 @@ def tutorial_keywords(hits, question):
     有知識庫資料 → 用小標題，例如「材質顯示成粉紅色（Missing Texture）」→ ("材質顯示成粉紅色", "Missing Texture")
     沒有 → 中文用學生的問題，英文挑問題裡的英文術語"""
     # 常見問題（98、99）的小標題太籠統（「不小心按到什麼，畫面跟平常不一樣」），拿來搜會找到不相關的東西
-    topical = [(sc, c) for sc, c in hits if not os.path.basename(c.source).startswith(("98_", "99_"))]
-    for _, c in topical[:1]:
+    # 最相關的是常見問題（排錯題，例如「選不到物件」）→ 不附延伸教學：按個鍵就解決的事不需要看影片，
+    # 而且拿第二相關的段落去搜，會搜到不相關的東西（例如「材質」影片）
+    if hits and os.path.basename(hits[0][1].source).startswith(("98_", "99_")):
+        return "", ""
+    for _, c in hits[:1]:
         zh = re.sub(r"[（(].*$", "", c.heading).strip()
         words = [w.strip() for w in re.findall(r"[A-Za-z][A-Za-z0-9 \-]{2,}", c.heading)
                  if not re.match(r"^(Ctrl|Shift|Alt|Tab|Numpad)\b", w.strip())]   # 快捷鍵不拿來搜
@@ -469,7 +750,7 @@ async def tutorial_footer(keywords, exclude=()):
     if not (TUTORIAL_LINKS and (zh or en)):
         return ""
     try:
-        links = await asyncio.wait_for(web_research.tutorial_links(zh, en), timeout=20)
+        links = await asyncio.wait_for(web_research.tutorial_links(zh, en, max_links=TUTORIAL_MAX), timeout=20)
     except Exception as e:
         print(f"[延伸教學] 搜尋失敗：{e!r}")
         return ""
@@ -484,7 +765,7 @@ async def build_history(thread, bot_user):
     """把討論串裡的訊息整理成對話紀錄，讓 AI 能接續追問"""
     history = []
     async for msg in thread.history(limit=30, oldest_first=True):
-        if (not msg.content and str(msg.id) not in image_notes) or msg.content.startswith("🔎"):
+        if (not msg.content and str(msg.id) not in image_notes) or msg.content.startswith(("🔎", "🩺 收到", "收到QQ")):
             continue
         role = "assistant" if msg.author == bot_user else "user"
         content = re.sub(r"\n+-# .*$", "", msg.content, flags=re.M)   # 去掉附註小字
@@ -545,6 +826,18 @@ async def on_ready():
         else:
             print(f"⚠️ 找不到本地模型 {llm.LOCAL_MODEL}（Ollama 有開嗎？已安裝：{names or '無'}），會改用 Gemini")
     print(f"語氣：{'小樽（persona/）' if PERSONA else '一般助教'}")
+    if REVIEW_CHANNEL_ID:
+        if bot.get_channel(REVIEW_CHANNEL_ID):
+            print(f"審核頻道：#{bot.get_channel(REVIEW_CHANNEL_ID).name}（網路筆記要老師按 {APPROVE} 才入庫）")
+            try:
+                await post_pending_drafts()
+            except Exception as e:
+                print(f"[審核] 補貼待審核筆記失敗：{e!r}")
+        else:
+            print(f"⚠️ 找不到審核頻道 {REVIEW_CHANNEL_ID}，網路筆記會先存在 knowledge_待審核/")
+    if BLEND_CHECK:
+        b = homework_check_module.find_blender()
+        print(f"作業健檢：{b}" if b else "⚠️ 作業健檢：找不到 Blender，請在 .env 設定 BLENDER_PATH")
     print(f"已上線：{bot.user}")
 
 
@@ -552,6 +845,28 @@ async def on_ready():
 async def on_message(message):
     if message.author.bot:
         return
+    # 審核頻道：老師回覆待審核的筆記
+    if REVIEW_CHANNEL_ID and message.channel.id == REVIEW_CHANNEL_ID:
+        if message.reference:
+            try:
+                await handle_review_reply(message)
+            except Exception as e:
+                print(f"[審核] 處理回覆失敗：{e!r}")
+        return
+
+    # 作業健檢：有 .blend 附檔就只做檢查
+    blends = blend_attachments(message) if BLEND_CHECK else []
+    if blends:
+        if message.channel.id == ASK_CHANNEL_ID:
+            thread = await message.create_thread(name=f"作業健檢：{blends[0].filename}"[:50])
+        elif isinstance(message.channel, discord.Thread) and message.channel.parent_id == ASK_CHANNEL_ID:
+            thread = message.channel
+        else:
+            return
+        for att in blends[:2]:
+            await run_homework_check(message, thread, att)
+        return
+
     shots = image_attachments(message) if VISION else []
     if not message.content and not shots:
         return
@@ -610,6 +925,7 @@ async def on_message(message):
     # 先只用最新那句查（追問「那要怎麼綁骨架」不該拿到第一題布林運算的資料）；
     # 查不到才合併第一題一起查（像「那第二步呢」這種要靠前文才看得懂的追問）
     query, hits = find_kb(latest, combined)
+    hits = focus_hits(hits)
     if query is None:
         # 知識庫沒資料 → 上網查：完整的問題只查它自己，看不懂的短追問才帶上第一題
         query = combined if is_vague(latest, combined) else latest
@@ -666,13 +982,15 @@ async def on_message(message):
     if vision and SHOW_SOURCES:
         extra += f"\n-# 👀 看圖判斷：{vision.get('issue', '')[:150]}"
 
+    answer = clean_answer(answer)
     print(f"[提問] {message.content[:40]} → {log_src[:80]}｜分類：{category}")
-    await send_answer(thread, answer, extra)
+    last_msg = await send_answer(thread, answer, extra)
+    asked = message.content + (f"［附 {len(shots)} 張截圖］" if shots else "")
     try:
-        asked = message.content + (f"［附 {len(shots)} 張截圖］" if shots else "")
         log_question(str(message.author), asked, answer, thread.id, log_src, category)
     except PermissionError:
         print("⚠️ questions_log.csv 被其他程式開著（Excel？），這筆沒記到")
+    await add_feedback_buttons(last_msg, message, asked, category, log_src, thread)
 
 
 if __name__ == "__main__":   # 讓 test_persona.py 可以 import 這個檔案而不啟動機器人
