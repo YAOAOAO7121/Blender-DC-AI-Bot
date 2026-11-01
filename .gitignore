@@ -13,3 +13,7 @@ image_notes.json
 feedback_log.csv
 answer_index.json
 review_index.json
+
+# Python virtual environment and per-machine launcher (created by install.ps1)
+.venv/
+啟動機器人.bat

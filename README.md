@@ -7,6 +7,10 @@ python bot.py
 （要先開 Ollama；設定都在 `.env`，可以調的選項看 `.env.example`）
 
 ## 在新電腦架設（換電腦／換更強的本地模型）
+
+> **最快的方式：雙擊 `install.bat`**（要先裝好 Ollama），會自動裝 Python、套件、挑模型、設定 `.env` 並檢查設定。
+> 詳細說明看 [`docs/安裝步驟.md`](docs/安裝步驟.md)；以下是手動步驟。
+
 > ⚠️ 同一個 Discord Token 只能在一台電腦跑，**先關掉舊電腦的機器人**，不然兩台會同時回答。
 
 ### 1. 確認顯卡
@@ -87,9 +91,10 @@ python bot.py                            正式啟動
 | `image_notes.json` | 截圖的看圖描述（追問時用，有人傳截圖後才會出現） |
 | `.env` / `.env.example` | 設定檔／設定範本（`.env` 有金鑰，不要上傳） |
 | `requirements.txt` | 需要的 Python 套件 |
+| `install.bat` / `install.ps1` | 一鍵安裝程式（Windows） |
+| `docs/` | 安裝步驟、技術文件、課程大綱等參考文件 |
 | `tests/` | 測試工具，不用開 Discord 就能試 |
 | `backup/` | 舊版程式備份 |
-| `docs/` | 課程大綱等參考文件 |
 
 ## 測試（在這個資料夾執行）
 ```
