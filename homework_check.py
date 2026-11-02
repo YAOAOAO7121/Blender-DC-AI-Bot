@@ -190,7 +190,7 @@ def format_report(r, filename):
         out.append("-# 🖼️ 預覽圖是我臨時放一台攝影機拍的，不是你的算圖結果")
     elif preview == "scene_camera":
         out.append("-# 🖼️ 預覽圖是用你的攝影機、Workbench 快速拍的，材質燈光效果以你自己算圖為準")
-    out.append("-# 機器檢查只能抓常見問題，作品好不好看還是要給老師看唷")
+    out.append("-# 機器檢查只能抓常見問題，作品好不好看還是要給小樽看唷")
 
     summary = f"一定要修 {len(must)}／建議修 {len(should)}"
     return "\n".join(out), summary

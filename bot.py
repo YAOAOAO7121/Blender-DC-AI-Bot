@@ -389,7 +389,7 @@ async def answer_from_web(messages, question, thread):
                 print(f"[審核] 貼到審核頻道失敗：{e!r}")
         if SHOW_SOURCES:
             if REVIEW_CHANNEL_ID:
-                extra += "\n-# 📝 已把這題整理成筆記，等老師審核後就會加進課程資料"
+                extra += "\n-# 📝 已把這題整理成筆記，等小樽審核後就會加進課程資料"
             else:
                 where = "知識庫" if AUTO_SAVE_WEB else "待審核資料夾"
                 extra += f"\n-# 📝 已整理存進{where}：{saved}（尚未經老師審核）"
@@ -475,7 +475,7 @@ async def handle_feedback(payload, info, added):
         except discord.HTTPException:
             thread = None
     if thread and is_asker:
-        await thread.send("收到QQ 哪裡不對或看不懂 可以直接在這裡補充 我再想想～也會請老師看一下"
+        await thread.send("收到QQ 哪裡不對或看不懂 可以直接在這裡補充 我再想想～也會請小樽看一下"
                           if PERSONA else "收到回饋，可以在這裡補充哪裡不清楚，也會轉給老師確認。")
     review = bot.get_channel(REVIEW_CHANNEL_ID) if REVIEW_CHANNEL_ID else None
     if review:
