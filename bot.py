@@ -994,4 +994,20 @@ async def on_message(message):
 
 
 if __name__ == "__main__":   # 讓 test_persona.py 可以 import 這個檔案而不啟動機器人
-    bot.run(DISCORD_TOKEN)
+    import sys
+    # 設定錯誤（重開也沒用）→ 印出說明並回傳 3，啟動機器人.bat 看到 3 就停住、不再自動重啟
+    if not (DISCORD_TOKEN or "").strip():
+        print("\n❌ .env 裡沒有填 DISCORD_TOKEN")
+        sys.exit(3)
+    try:
+        bot.run(DISCORD_TOKEN.strip().strip('"').strip("'"))
+    except discord.LoginFailure:
+        print("\n❌ Discord Token 無效，機器人無法登入。\n"
+              "   可能是貼錯（貼成 Application ID 或 Client Secret），或之後又按過 Reset Token 讓舊的失效。\n"
+              "   到 Discord Developer Portal → 你的應用程式 → Bot → Reset Token → Copy，\n"
+              "   再重新執行 install.bat（或直接改 .env 的 DISCORD_TOKEN）")
+        sys.exit(3)
+    except discord.PrivilegedIntentsRequired:
+        print("\n❌ 還沒開啟 Message Content Intent。\n"
+              "   到 Discord Developer Portal → 你的應用程式 → Bot → 打開「Message Content Intent」→ Save Changes")
+        sys.exit(3)

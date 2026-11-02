@@ -70,16 +70,26 @@ function Ask-YesNo($question, $default = $true) {
     }
 }
 
+# 貼上的金鑰常夾帶引號、空白、換行或「Bot 」字首 → 清掉
+function Clean-Secret($v) {
+    $v = "$v".Trim().Trim('"').Trim("'").Trim()
+    $v = $v -replace '^(Bot|Bearer)\s+', ''
+    return ($v -replace '\s', '')
+}
+function Mask($v) {
+    if ($v.Length -le 10) { return "（$($v.Length) 個字）" }
+    return "$($v.Substring(0, 4))…$($v.Substring($v.Length - 4))（$($v.Length) 個字）"
+}
+# 用一般輸入（看得到內容）：隱藏輸入時 Ctrl+V 在某些視窗貼不進去，又看不出貼錯
 function Read-Secret($prompt) {
     while ($true) {
-        $s = Read-Host "  $prompt（貼上時畫面不會顯示，按右鍵或 Ctrl+V 貼上後按 Enter）" -AsSecureString
-        $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)
-        try { $v = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b).Trim() }
-        finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }
-        if ($v) { return $v }
+        $v = Clean-Secret (Read-Host "  $prompt（在視窗按右鍵或 Ctrl+V 貼上，再按 Enter）")
+        if ($v) { Info "收到：$(Mask $v)"; return $v }
+        if ($prompt -match '跳過') { return '' }
         Warn '沒有收到內容，請再貼一次'
     }
 }
+function Looks-Like-Token($v) { return $v -match '^[\w-]{20,}\.[\w-]{4,}\.[\w-]{20,}$' }
 
 function Read-Id($prompt, $optional = $false) {
     while ($true) {
@@ -498,11 +508,29 @@ function Discord-Get($path) {
         -UserAgent 'DiscordBot (https://github.com/YAOAOAO7121/Blender-DC-AI-Bot, 1.0)'
     return [Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray()) | ConvertFrom-Json
 }
-$token = Get-EnvValue $lines 'DISCORD_TOKEN'
-$headers = @{ Authorization = "Bot $token" }
+function Save-Env { [IO.File]::WriteAllLines($EnvPath, [string[]]$lines, $Utf8NoBom) }
 $problems = 0
-try {
-    $me = Discord-Get '/users/@me'
+
+# Token：無效就當場重新輸入（最多 3 次），不用自己開 .env 改
+$me = $null
+for ($try = 1; $try -le 4; $try++) {
+    $token = Clean-Secret (Get-EnvValue $lines 'DISCORD_TOKEN')
+    if ($token -ne (Get-EnvValue $lines 'DISCORD_TOKEN')) { Set-EnvValue $lines 'DISCORD_TOKEN' $token; Save-Env }
+    $headers = @{ Authorization = "Bot $token" }
+    try { $me = Discord-Get '/users/@me'; break } catch {
+        $code = try { [int]$_.Exception.Response.StatusCode } catch { 0 }
+        if ($code -ne 401) { Warn "連不上 Discord（$($_.Exception.Message)），先跳過檢查"; break }
+    }
+    Warn "Discord 不接受這個 Token：$(Mask $token)"
+    if (-not (Looks-Like-Token $token)) { Warn '  格式也不對：Token 應該是用兩個「.」分成三段的一長串英數字（約 70 字）' }
+    Info '  常見原因：① 貼到的是 Application ID 或 Client Secret，不是 Bot Token'
+    Info '            ② 之後又按過 Reset Token（舊的會立刻失效，其他電腦上的 .env 也要一起換新）'
+    Info '  重新取得：Discord Developer Portal → 你的應用程式 → 左邊「Bot」→ Reset Token → Copy'
+    if ($try -eq 4) { break }
+    $new = Read-Secret '重新貼上 Discord Token（直接按 Enter 跳過）'
+    Set-EnvValue $lines 'DISCORD_TOKEN' $new; Save-Env
+}
+if ($me) { try {
     Ok "Discord 機器人：$($me.username)"
     $app = Discord-Get '/applications/@me'
     $flags = [int64]$app.flags
@@ -526,7 +554,10 @@ try {
     }
     if ($problems) { Info "邀請機器人加入伺服器（權限已設定好）：$invite" }
 } catch {
-    Warn 'Discord Token 無效（可能貼錯或已經被重設）。請打開 .env 修正 DISCORD_TOKEN 後重新執行'
+    Warn "檢查 Discord 設定時出錯：$($_.Exception.Message)"
+    $problems++
+} } else {
+    Warn 'Discord Token 還是無效，機器人無法登入。拿到正確的 Token 後再執行一次 install.bat'
     $problems++
 }
 
@@ -564,6 +595,12 @@ $batLines = @(
     'title Blender AI Bot',
     ':loop',
     '".venv\Scripts\python.exe" bot.py',
+    'if errorlevel 3 if not errorlevel 4 (',
+    '  echo.',
+    '  echo Setup problem - see the message above. Fix it, then run this file again.',
+    '  pause',
+    '  exit /b 3',
+    ')',
     'echo.',
     'echo Bot stopped. Restarting in 10 seconds... (close this window to stop the bot)',
     'timeout /t 10',
