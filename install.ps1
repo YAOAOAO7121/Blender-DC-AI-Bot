@@ -539,7 +539,7 @@ if ($me) { try {
         Warn "  請到 https://discord.com/developers/applications/$($app.id)/bot 打開 Message Content Intent 並儲存"
         $problems++
     } else { Ok 'Message Content Intent 已開啟' }
-    $invite = "https://discord.com/oauth2/authorize?client_id=$($app.id)&scope=bot&permissions=309237746752"
+    $invite = "https://discord.com/oauth2/authorize?client_id=$($app.id)&scope=bot+applications.commands&permissions=309237746752"
     foreach ($k in @('ASK_CHANNEL_ID', 'REVIEW_CHANNEL_ID')) {
         $id = Get-EnvValue $lines $k
         if (-not $id) { continue }

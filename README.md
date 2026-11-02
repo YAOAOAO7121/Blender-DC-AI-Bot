@@ -78,6 +78,7 @@ python bot.py                            正式啟動
 | `knowledge.py` | 本地知識庫搜尋、提問分類 |
 | `llm.py` | 呼叫 AI 模型（本地 Ollama、Gemini、看圖） |
 | `web_research.py` | 上網查資料、找延伸教學連結 |
+| `admin.py` | 老師自訂介面：Discord 的 `/語氣`、`/用詞`、`/試答` 指令 |
 | `feedback.py` | 👍/👎 回饋紀錄、審核訊息對照表 |
 | `homework_check.py` | 作業健檢：叫 Blender 檢查 .blend、整理成報告 |
 | `blend_check/` | 在 Blender 裡面跑的檢查腳本 |

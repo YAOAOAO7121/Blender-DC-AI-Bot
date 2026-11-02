@@ -34,6 +34,7 @@ from dotenv import load_dotenv
 
 load_dotenv()   # 要在 import llm 之前載入設定
 
+import admin
 import feedback
 import homework_check as homework_check_module
 import llm
@@ -54,7 +55,6 @@ VISION = os.getenv("VISION", "1") == "1"                # 1 = 看學生傳的截
 TUTORIAL_LINKS = os.getenv("TUTORIAL_LINKS", "1") == "1"  # 1 = 回答下方附延伸教學連結
 LOCAL_KEEP_RATIO = float(os.getenv("LOCAL_KEEP_RATIO", "0.7"))  # 只用分數 ≥ 最高分×這個比例的資料（本地模型和 Gemini 都是）
 TUTORIAL_MAX = int(os.getenv("TUTORIAL_MAX", "2"))               # 延伸教學最多幾個連結
-BANNED_PHRASES = ["妥妥的", "莫慌莫慌", "莫慌"]                   # 模型還是講出來的話，送出前直接刪掉
 FEEDBACK = os.getenv("FEEDBACK", "1") == "1"            # 1 = 回答下方加 👍/👎
 REVIEW_CHANNEL_ID = int(os.getenv("REVIEW_CHANNEL_ID") or 0)   # 老師審核頻道；0 = 不用審核頻道
 REVIEWER_IDS = {int(x) for x in re.findall(r"\d+", os.getenv("REVIEWER_IDS", ""))}  # 誰可以審核；空白 = 審核頻道裡的人都可以
@@ -121,7 +121,7 @@ KB_FOUND = """
 
 使用資料的規則：
 - 根據上面的資料回答；資料和你自己的知識不一致時，以資料為準
-- 資料沒提到的細節不要自己編，可以請同學補充狀況或去問老師
+- 資料沒提到的細節不要自己編，可以請同學補充狀況或去問小樽
 - 回答裡不要出現「資料1」「資料2」這種編號"""
 
 # 給本地小模型用：資料和規則放在「最後一則訊息」裡，小模型比較會照做
@@ -130,13 +130,13 @@ LOCAL_RULES = """請只根據上面的【課程資料】回答【學生的問題
 2. 資料沒有提到的步驟、按鍵、功能，一律不要寫，不要自己補充或延伸
 3. 用繁體中文；每個步驟獨立一行、用 1. 2. 3. 編號，不要寫成一整段
 4. 不要寫「資料1」這種編號"""
-LOCAL_PARTIAL = "\n5. 資料只能回答一部分時，只回答那部分，最後加一句「其他細節課程資料沒寫到，可以再問老師或助教喔」"
+LOCAL_PARTIAL = "\n5. 資料只能回答一部分時，只回答那部分，最後加一句「其他細節課程資料沒寫到，有什麼問題可以再問小樽喔」"
 # 小模型照「範例」學格式比照規則學得好；範例內容故意跟 Blender 操作無關，避免被抄進答案
 LOCAL_TONE = """
 5. 第一句直接講最可能的原因和解法，不要開場白、不要安撫的話
 6. 口氣輕鬆像朋友，句尾偶爾加「XD」「唷」；不要自稱小樽或老師；不要用「妥妥的」
 7. 越短越好：簡單問題 2～4 行；要好幾個步驟才用 1. 2. 3. 編號，最多 5 步
-8. 資料只能回答一部分時，最後加一句「其他細節課程資料沒寫到 可以再問老師或助教唷」"""
+8. 資料只能回答一部分時，最後加一句「其他細節課程資料沒寫到 有什麼問題可以再問小樽唷」"""
 
 
 def focus_hits(hits):
@@ -149,9 +149,8 @@ def focus_hits(hits):
 
 
 def clean_answer(text):
-    """刪掉禁用的口頭禪，順便清掉刪完後多出來的空白和標點"""
-    for p in BANNED_PHRASES:
-        text = re.sub(re.escape(p) + r"[！!~～。.]*", "", text)
+    """套用 persona/用詞替換.txt（例如刪掉「妥妥的」、「問老師」換成「問小樽」），順便清掉多出來的空白"""
+    text = admin.apply_replacements(text)
     text = re.sub(r"[ \t]+\n", "\n", text)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
@@ -159,7 +158,7 @@ def clean_answer(text):
 def tidy_local(text):
     """小模型的回答常擠成一大段、結尾兩句重複 → 整理成好讀的樣子"""
     text = text.strip()
-    if "可以再問老師或助教" in text:   # 兩種結尾都寫了 → 只留「資料沒寫到」那句
+    if "可以再問小樽" in text:   # 兩種結尾都寫了 → 只留「資料沒寫到」那句
         text = re.sub(r"\n*試試看[，, ]*有問題再來問[~～]*\s*$", "", text).strip()
     body_lines = [l for l in text.splitlines() if l.strip()]
     if body_lines and max(len(l) for l in body_lines) > 150:
@@ -204,13 +203,14 @@ WEB_PROMPT = """
                                // 例如「## 用粒子系統做頭髮（Hair Particles）」；內容精簡正確、寫出操作步驟與快捷鍵
 }}
 - 網頁內容互相矛盾或明顯過時（例如 Blender 2.7 以前的介面）時，以新版 Blender 為準並在回答中提醒
-- found 為 false 時，answer 照樣用你的一般知識回答，但要說明網路上沒找到可靠資料、建議問老師；note 留空字串"""
+- found 為 false 時，answer 照樣用你的一般知識回答，但要說明網路上沒找到可靠資料、建議問小樽；note 留空字串"""
 
 kb = KnowledgeBase()
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = discord.Client(intents=intents)
+tree = discord.app_commands.CommandTree(bot)   # 老師用的斜線指令（/語氣、/用詞、/試答，在 admin.py）
 
 
 # ───────────── 紀錄 ─────────────
@@ -354,7 +354,7 @@ async def answer_from_web(messages, question, thread):
     pages = await web_research.research(question, keywords)
     if not pages:
         answer, engine = await general_answer(messages)
-        return (answer, f"\n\n-# 🔎 網路上沒找到合適的資料，以上是 AI 的一般知識（{engine}），建議再確認或問老師",
+        return (answer, f"\n\n-# 🔎 網路上沒找到合適的資料，以上是 AI 的一般知識（{engine}），建議再確認或問小樽",
                 "（網路查無資料）")
 
     page_text = "\n\n".join(f"[網頁{i}] {p['title']}\n網址：{p['url']}\n{p['text']}"
@@ -646,7 +646,7 @@ async def run_homework_check(message, thread, att):
         await thread.send(f"這個檔案超過 {homework_check_module.MAX_MB}MB 太大了QQ 我先不檢查")
         return
     if not homework_check_module.find_blender():
-        await thread.send("作業健檢暫時不能用（這台電腦找不到 Blender），先找助教或老師看唷")
+        await thread.send("作業健檢暫時不能用（這台電腦找不到 Blender），先找助教或小樽看唷")
         print("⚠️ 找不到 Blender：請在 .env 設定 BLENDER_PATH")
         return
     waiting = homework_check_module.queue_size()
@@ -838,7 +838,33 @@ async def on_ready():
     if BLEND_CHECK:
         b = homework_check_module.find_blender()
         print(f"作業健檢：{b}" if b else "⚠️ 作業健檢：找不到 Blender，請在 .env 設定 BLENDER_PATH")
+    await admin.sync_commands(tree, bot.guilds)
     print(f"已上線：{bot.user}")
+
+
+@bot.event
+async def on_guild_join(guild):
+    await admin.sync_commands(tree, [guild])
+
+
+async def try_answer(question):
+    """給 /試答 用：照正式流程查知識庫、用目前的語氣回答，但不上網查、不存筆記、不記錄"""
+    _followup.set(False)
+    messages = [{"role": "user", "content": question}]
+    query, hits = find_kb(question, question)
+    hits = focus_hits(hits)
+    answer = None
+    if hits:
+        answer, engine = await answer_from_kb(messages, hits, query)
+    if answer is None:
+        answer, engine = await general_answer(messages)
+        source = "課程資料沒有這題（正式回答時會上網查）"
+    else:
+        source = "；".join(dict.fromkeys(c.title for _, c in hits))
+    return clean_answer(answer), engine, source
+
+
+admin.register(tree, reviewer_ids=REVIEWER_IDS, try_answer=try_answer, split_for_chat=split_for_chat)
 
 
 @bot.event

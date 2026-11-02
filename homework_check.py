@@ -116,7 +116,7 @@ def format_report(r, filename):
     """回傳 (報告文字, 給 log 的一行摘要)"""
     if not r.get("ok"):
         return ("這個檔案我打開的時候出錯了QQ 可能檔案壞掉 或是用比較新的 Blender 存的\n"
-                "可以再存一次檔重傳 或直接拿去問老師/助教唷",
+                "可以再存一次檔重傳 或直接拿去問小樽/助教唷",
                 "檢查失敗")
 
     must, should = [], []
