@@ -11,7 +11,7 @@
     3. 確認 Ollama 有在執行，設定模型常駐顯卡
     4. 依顯卡記憶體挑本地模型、下載、確認整個放得進顯卡
     5. 設定 .env（可沿用舊電腦的 .env），並檢查 Token、金鑰、頻道是否正確
-    6. 建立桌面的啟動／停止按鈕（start-bot.bat／stop-bot.bat），可選擇開機自動啟動
+    6. 建立桌面的啟動／停止按鈕（start-bot.bat／stop-bot.bat），詢問要不要開機自動啟動（之後可用 autostart.bat 切換）
   Ollama 與 Blender 不會自動安裝，只會檢查。
   可以重複執行：已經做好的步驟會跳過。
 #>
@@ -679,15 +679,14 @@ if ($makeButtons) {
     Ok '桌面按鈕已建立：使用小樽影分身之術（啟動）、解除小樽影分身（停止）'
 }
 
-$startup = [Environment]::GetFolderPath('Startup')
-$lnk = Join-Path $startup 'Blender AI 教學助理.lnk'
-if (Test-Path $lnk) {
-    Make-Shortcut $lnk $StartBat $StartIcon   # 重建：舊版的捷徑指向已經改名的檔案
-    Ok '已設定開機自動啟動'
-} elseif (Ask-YesNo '要讓電腦開機後自動啟動機器人嗎？' $true) {
-    Make-Shortcut $lnk $StartBat $StartIcon
-    Ok '已加入開機自動啟動'
-}
+# 開機自動啟動：每次都問（以前裝過的也可以在這裡關掉）；之後隨時可以雙擊 autostart.bat 切換
+$lnk = Join-Path ([Environment]::GetFolderPath('Startup')) 'Blender AI 教學助理.lnk'
+$autoNow = Test-Path -LiteralPath $lnk
+$autoQ = if ($autoNow) { '目前電腦開機會自動啟動機器人，要繼續保持嗎？' } else { '要讓電腦開機後自動啟動機器人嗎？' }
+$autoWant = Ask-YesNo $autoQ $false
+& (Join-Path $Root 'autostart.ps1') -Quiet -On:$autoWant -Off:(-not $autoWant)
+if ($autoWant) { Ok '開機會自動啟動機器人' } else { Ok '開機不會自動啟動（要用時按桌面的「使用小樽影分身之術」）' }
+Info '之後想改：雙擊資料夾裡的 autostart.bat（開著就關、關著就開）'
 if (Ask-YesNo '要把電腦設成插電時不睡眠嗎？（睡眠 = 機器人下線）' $true) {
     try { & powercfg /change standby-timeout-ac 0 | Out-Null; $pcOk = ($LASTEXITCODE -eq 0) } catch { $pcOk = $false }
     if ($pcOk) { Ok '已設定插電時不睡眠' } else { Warn '設定失敗，請到「設定 → 系統 → 電源」手動把睡眠改成「永不」' }
