@@ -11,7 +11,7 @@
     3. 確認 Ollama 有在執行，設定模型常駐顯卡
     4. 依顯卡記憶體挑本地模型、下載、確認整個放得進顯卡
     5. 設定 .env（可沿用舊電腦的 .env），並檢查 Token、金鑰、頻道是否正確
-    6. 建立「啟動機器人.bat」，可選擇開機自動啟動
+    6. 建立桌面的啟動／停止按鈕（start-bot.bat／stop-bot.bat），可選擇開機自動啟動
   Ollama 與 Blender 不會自動安裝，只會檢查。
   可以重複執行：已經做好的步驟會跳過。
 #>
@@ -587,7 +587,10 @@ try {
 
 Step 8 '建立啟動／停止按鈕'
 
-$StartBat = Join-Path $Root '啟動機器人.bat'
+# 檔名用英文：建立捷徑的 Windows 元件遇到系統語系以外的字會出錯（Value does not fall within the expected range）
+$StartBat = Join-Path $Root 'start-bot.bat'
+# 舊版的中文檔名 → 刪掉，捷徑會改指到新的
+foreach ($old in @('啟動機器人.bat', '停止機器人.bat')) { Remove-Item (Join-Path $Root $old) -ErrorAction SilentlyContinue }
 $batLines = @(
     '@echo off',
     'cd /d "%~dp0"',
@@ -616,7 +619,7 @@ $batLines = @(
 Ok "已建立：$StartBat"
 
 # 停止：關掉啟動視窗（連自動重啟一起停），再收掉其他還在跑的 bot.py（例如舊的開關按鈕啟動的）
-$StopBat = Join-Path $Root '停止機器人.bat'
+$StopBat = Join-Path $Root 'stop-bot.bat'
 $stopLines = @(
     '@echo off',
     'taskkill /fi "windowtitle eq Blender AI Bot*" /t /f >nul 2>&1',
@@ -628,16 +631,33 @@ $stopLines = @(
 [IO.File]::WriteAllText($StopBat, ($stopLines -join "`r`n") + "`r`n", [Text.Encoding]::ASCII)
 Ok "已建立：$StopBat"
 
+# 建捷徑：先在英文路徑（C:\Users\Public）建好再搬到桌面，捷徑名稱、資料夾路徑有中文也沒問題
 function Make-Shortcut($path, $target, $icon) {
-    $sh = New-Object -ComObject WScript.Shell
-    $s = $sh.CreateShortcut($path)
-    $s.TargetPath = $target
-    $s.WorkingDirectory = $Root
-    if ($icon -and (Test-Path $icon)) { $s.IconLocation = "$icon,0" }
-    $s.Save()
+    $tmpDir = if ($env:PUBLIC -and (Test-Path $env:PUBLIC)) { $env:PUBLIC } else { $env:TEMP }
+    $tmpName = "bot-shortcut-$([guid]::NewGuid().ToString('N')).lnk"
+    $tmp = Join-Path $tmpDir $tmpName
+    $hasIcon = $icon -and (Test-Path $icon)
+    $s = (New-Object -ComObject WScript.Shell).CreateShortcut($tmp)
+    try {
+        $s.TargetPath = $target
+        $s.WorkingDirectory = $Root
+        if ($hasIcon) { $s.IconLocation = "$icon,0" }
+        $s.Save()
+    } catch {
+        # 資料夾路徑有系統語系以外的字 → 先存一個空捷徑，再用支援 Unicode 的 Shell.Application 填內容
+        $s = (New-Object -ComObject WScript.Shell).CreateShortcut($tmp)
+        $s.TargetPath = "$env:WINDIR\System32\cmd.exe"
+        $s.Save()
+        $link = (New-Object -ComObject Shell.Application).NameSpace($tmpDir).ParseName($tmpName).GetLink
+        $link.Path = $target
+        $link.WorkingDirectory = $Root
+        if ($hasIcon) { $link.SetIconLocation($icon, 0) }
+        $link.Save()
+    }
+    Move-Item -LiteralPath $tmp -Destination $path -Force
 }
-$StartIcon = Join-Path $Root 'assets\啟動.ico'
-$StopIcon = Join-Path $Root 'assets\停止.ico'
+$StartIcon = Join-Path $Root 'assets\start.ico'
+$StopIcon = Join-Path $Root 'assets\stop.ico'
 
 # 桌面按鈕（小樽設計的圖示）
 $desktop = [Environment]::GetFolderPath('Desktop')
@@ -662,6 +682,7 @@ if ($makeButtons) {
 $startup = [Environment]::GetFolderPath('Startup')
 $lnk = Join-Path $startup 'Blender AI 教學助理.lnk'
 if (Test-Path $lnk) {
+    Make-Shortcut $lnk $StartBat $StartIcon   # 重建：舊版的捷徑指向已經改名的檔案
     Ok '已設定開機自動啟動'
 } elseif (Ask-YesNo '要讓電腦開機後自動啟動機器人嗎？' $true) {
     Make-Shortcut $lnk $StartBat $StartIcon
@@ -683,7 +704,7 @@ if ($problems) {
     Write-Host '  安裝完成！' -ForegroundColor Green
 }
 Write-Host '  之後用桌面的「使用小樽影分身之術」啟動、「解除小樽影分身」停止'
-Write-Host "  （沒有桌面按鈕的話：資料夾裡的 啟動機器人.bat／停止機器人.bat）"
+Write-Host "  （沒有桌面按鈕的話：資料夾裡的 start-bot.bat／stop-bot.bat）"
 Write-Host '  [注意] 同一個機器人只能在一台電腦上線，舊電腦上的機器人記得關掉' -ForegroundColor Yellow
 Write-Host '========================================' -ForegroundColor Cyan
 Write-Host ''
