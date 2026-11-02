@@ -17,6 +17,7 @@ review_index.json
 # Python virtual environment and per-machine launcher (created by install.ps1)
 .venv/
 啟動機器人.bat
+停止機器人.bat
 
 # 老師用 /語氣、/用詞 改的設定與備份（每台電腦自己的，不上傳）
 persona/歷史/

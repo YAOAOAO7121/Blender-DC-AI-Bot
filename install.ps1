@@ -585,12 +585,18 @@ try {
 
 # ───────────── 8. 啟動捷徑 ─────────────
 
-Step 8 '建立啟動捷徑'
+Step 8 '建立啟動／停止按鈕'
 
 $StartBat = Join-Path $Root '啟動機器人.bat'
 $batLines = @(
     '@echo off',
     'cd /d "%~dp0"',
+    'rem Already running? Two copies would answer every question twice.',
+    'tasklist /v /fo csv /fi "imagename eq cmd.exe" | find /i "Blender AI Bot" >nul && (',
+    '  echo The bot is already running. Use the stop button first if you want to restart it.',
+    '  timeout /t 5',
+    '  exit /b 0',
+    ')',
     'set PYTHONUTF8=1',
     'title Blender AI Bot',
     ':loop',
@@ -609,16 +615,56 @@ $batLines = @(
 [IO.File]::WriteAllText($StartBat, ($batLines -join "`r`n") + "`r`n", [Text.Encoding]::ASCII)
 Ok "已建立：$StartBat"
 
+# 停止：關掉啟動視窗（連自動重啟一起停），再收掉其他還在跑的 bot.py（例如舊的開關按鈕啟動的）
+$StopBat = Join-Path $Root '停止機器人.bat'
+$stopLines = @(
+    '@echo off',
+    'taskkill /fi "windowtitle eq Blender AI Bot*" /t /f >nul 2>&1',
+    'rem No double quotes inside the PowerShell command: cmd would treat the | after them as its own pipe',
+    'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''python.exe'' -and $_.CommandLine -match ''\bbot\.py.?\s*$'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"',
+    'echo Bot stopped.',
+    'timeout /t 3 >nul'
+)
+[IO.File]::WriteAllText($StopBat, ($stopLines -join "`r`n") + "`r`n", [Text.Encoding]::ASCII)
+Ok "已建立：$StopBat"
+
+function Make-Shortcut($path, $target, $icon) {
+    $sh = New-Object -ComObject WScript.Shell
+    $s = $sh.CreateShortcut($path)
+    $s.TargetPath = $target
+    $s.WorkingDirectory = $Root
+    if ($icon -and (Test-Path $icon)) { $s.IconLocation = "$icon,0" }
+    $s.Save()
+}
+$StartIcon = Join-Path $Root 'assets\啟動.ico'
+$StopIcon = Join-Path $Root 'assets\停止.ico'
+
+# 桌面按鈕（小樽設計的圖示）
+$desktop = [Environment]::GetFolderPath('Desktop')
+$buttons = @(
+    @{ Name = '使用小樽影分身之術'; Target = $StartBat; Icon = $StartIcon },
+    @{ Name = '解除小樽影分身'; Target = $StopBat; Icon = $StopIcon }
+)
+$existing = @($buttons | Where-Object { Test-Path (Join-Path $desktop "$($_.Name).lnk") })
+$makeButtons = $true
+if ($existing) {
+    Info "桌面已經有：$(($existing | ForEach-Object { $_.Name }) -join '、')"
+    Info '新版的「解除」會連自動重啟一起停掉（舊的按鈕只關 python 的話，機器人 10 秒後會自己重開）'
+    $makeButtons = Ask-YesNo '要換成新版的按鈕嗎？（圖示一樣）' $true
+} elseif (-not (Ask-YesNo '要在桌面建立「使用小樽影分身之術」「解除小樽影分身」按鈕嗎？' $true)) {
+    $makeButtons = $false
+}
+if ($makeButtons) {
+    foreach ($b in $buttons) { Make-Shortcut (Join-Path $desktop "$($b.Name).lnk") $b.Target $b.Icon }
+    Ok '桌面按鈕已建立：使用小樽影分身之術（啟動）、解除小樽影分身（停止）'
+}
+
 $startup = [Environment]::GetFolderPath('Startup')
 $lnk = Join-Path $startup 'Blender AI 教學助理.lnk'
 if (Test-Path $lnk) {
     Ok '已設定開機自動啟動'
 } elseif (Ask-YesNo '要讓電腦開機後自動啟動機器人嗎？' $true) {
-    $sh = New-Object -ComObject WScript.Shell
-    $s = $sh.CreateShortcut($lnk)
-    $s.TargetPath = $StartBat
-    $s.WorkingDirectory = $Root
-    $s.Save()
+    Make-Shortcut $lnk $StartBat $StartIcon
     Ok '已加入開機自動啟動'
 }
 if (Ask-YesNo '要把電腦設成插電時不睡眠嗎？（睡眠 = 機器人下線）' $true) {
@@ -636,7 +682,8 @@ if ($problems) {
 } else {
     Write-Host '  安裝完成！' -ForegroundColor Green
 }
-Write-Host "  之後雙擊「$StartBat」就能啟動機器人"
+Write-Host '  之後用桌面的「使用小樽影分身之術」啟動、「解除小樽影分身」停止'
+Write-Host "  （沒有桌面按鈕的話：資料夾裡的 啟動機器人.bat／停止機器人.bat）"
 Write-Host '  [注意] 同一個機器人只能在一台電腦上線，舊電腦上的機器人記得關掉' -ForegroundColor Yellow
 Write-Host '========================================' -ForegroundColor Cyan
 Write-Host ''
