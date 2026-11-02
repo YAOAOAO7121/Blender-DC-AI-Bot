@@ -94,7 +94,7 @@ python bot.py                            正式啟動
 | `requirements.txt` | 需要的 Python 套件 |
 | `install.bat` / `install.ps1` | 一鍵安裝程式（Windows） |
 | `assets/` | 桌面按鈕圖示（小樽設計）|
-| `docs/` | 安裝步驟、技術文件、課程大綱等參考文件 |
+| `docs/` | 安裝步驟、技術文件 |
 | `tests/` | 測試工具，不用開 Discord 就能試 |
 | `backup/` | 舊版程式備份 |
 
