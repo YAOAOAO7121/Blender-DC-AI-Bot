@@ -301,18 +301,66 @@ for ($i = 0; $i -lt $ModelTiers.Count; $i++) {
     if ($vramGB -ge $ModelTiers[$i].MinGB) { $start = $i; break }
 }
 $tier = $ModelTiers[$start]
-Info "建議模型：$($tier.Model)"
-$custom = (Read-Host '  直接按 Enter 使用建議的模型，或輸入其他 Ollama 模型名稱').Trim()
-
-$candidates = @()
-if ($custom) {
-    $candidates += @{ Model = $custom; Ctx = $tier.Ctx; Ratio = $tier.Ratio }
-}
-for ($i = $start; $i -lt $ModelTiers.Count; $i++) { $candidates += $ModelTiers[$i] }
 
 function Installed-Models {
     try { return @((Invoke-RestMethod "$OllamaApi/api/tags").models | ForEach-Object { $_.name }) } catch { return @() }
 }
+function Same-Model($a, $b) { return ($a -eq $b -or $a -eq "$b`:latest" -or "$a`:latest" -eq $b) }
+
+# 電腦上已經有的模型（拿掉 embedding 這類不能聊天的模型）
+$installed = @()
+try {
+    $installed = @((Invoke-RestMethod "$OllamaApi/api/tags").models |
+        Where-Object { $_.name -notmatch 'embed|bge|minilm|rerank' } |
+        ForEach-Object { [pscustomobject]@{ Name = $_.name; GB = [math]::Round($_.size / 1GB, 1) } } |
+        Sort-Object GB -Descending)
+} catch {}
+
+function Is-Thinking($name) { return $name -match 'deepseek-r1|gemma|qwq|thinking|magistral' }
+# 已安裝的模型 → 設定值：大模型多看幾段資料（0.5），小模型只看最相關的（0.7）
+function Tier-For($name, $gb) { return @{ Model = $name; Ctx = $tier.Ctx; Ratio = $(if ($gb -ge 15) { '0.5' } else { '0.7' }) } }
+
+$candidates = @()
+$current = Get-EnvValue (Read-EnvLines (Join-Path $Root '.env')) 'LOCAL_MODEL'
+$recommendedHere = $installed | Where-Object { Same-Model $_.Name $tier.Model } | Select-Object -First 1
+
+if ($installed.Count -gt 0) {
+    Info '這台電腦已經有的模型（選這些不用重新下載）：'
+    $fitLimit = if ($vramGB -gt 0) { $vramGB * 0.9 } else { [double]::MaxValue }
+    $default = $null
+    for ($i = 0; $i -lt $installed.Count; $i++) {
+        $m = $installed[$i]
+        $notes = @()
+        if ($current -and (Same-Model $m.Name $current)) { $notes += '目前 .env 用的' }
+        if (Same-Model $m.Name $tier.Model) { $notes += '建議' }
+        if ($vramGB -gt 0 -and $m.GB -gt $fitLimit) { $notes += '可能放不進顯卡' }
+        if (Is-Thinking $m.Name) { $notes += '不建議：會思考的模型' }
+        $tag = if ($notes) { '  ← ' + ($notes -join '、') } else { '' }
+        Write-Host ("    {0}. {1}（{2} GB）{3}" -f ($i + 1), $m.Name, $m.GB, $tag)
+    }
+    # 預設：建議的模型已經有 → 用它；否則用已安裝、放得進顯卡、不會思考的最大模型
+    if ($recommendedHere) { $default = $recommendedHere }
+    else { $default = $installed | Where-Object { $_.GB -le $fitLimit -and -not (Is-Thinking $_.Name) } | Select-Object -First 1 }
+    if ($default) { Info "直接按 Enter → 使用 $($default.Name)（不用下載）" }
+    else { Info "已有的模型都不適合，直接按 Enter → 下載建議的 $($tier.Model)" }
+    Info "輸入 d → 下載建議的 $($tier.Model)；也可以輸入編號或其他 Ollama 模型名稱"
+    $ans = (Read-Host '  請選擇').Trim()
+    if ($ans -eq '' -and $default) {
+        $candidates += Tier-For $default.Name $default.GB
+    } elseif ($ans -match '^\d+$' -and [int]$ans -ge 1 -and [int]$ans -le $installed.Count) {
+        $m = $installed[[int]$ans - 1]
+        if (Is-Thinking $m.Name) { Warn "$($m.Name) 會先「思考」，可能把思考過程當成答案（不是 qwen3 的話程式關不掉）" }
+        $candidates += Tier-For $m.Name $m.GB
+    } elseif ($ans -and $ans -ne 'd') {
+        $candidates += @{ Model = $ans; Ctx = $tier.Ctx; Ratio = $tier.Ratio }
+    }
+} else {
+    Info "建議模型：$($tier.Model)"
+    $ans = (Read-Host '  直接按 Enter 下載建議的模型，或輸入其他 Ollama 模型名稱').Trim()
+    if ($ans) { $candidates += @{ Model = $ans; Ctx = $tier.Ctx; Ratio = $tier.Ratio } }
+}
+# 選的模型不行（下載失敗、放不進顯卡）時，依序往下試建議表
+for ($i = $start; $i -lt $ModelTiers.Count; $i++) { $candidates += $ModelTiers[$i] }
 
 $Chosen = $null
 foreach ($c in $candidates) {
