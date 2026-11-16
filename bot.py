@@ -39,7 +39,7 @@ import feedback
 import homework_check as homework_check_module
 import llm
 import web_research
-from knowledge import KnowledgeBase, classify, format_context
+from knowledge import LayeredKnowledgeBase, classify, format_context
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 ASK_CHANNEL_ID = int(os.getenv("ASK_CHANNEL_ID"))
@@ -107,7 +107,11 @@ def system_prompt(local=False):
         text = load_persona("小樽_精簡.md" if local else "小樽_完整.md")
         if not text:
             print("⚠️ 讀不到 persona/ 裡的語氣檔，改用一般助教口吻")
-    return (text or PLAIN_PROMPT) + (FOLLOWUP_RULE if _followup.get() else "")
+    version_rule = "\n【知識版本】通用概念可直接回答；選單、快捷鍵或操作步驟若未指定 Blender 版本且課程沒有預設版本，先詢問是 4.2 或 5.0。只使用資料標明的適用版本；不支援的版本不得套用另一版步驟。資料屬 source_checked 僅代表已核對來源，不可稱為教師已審核。使用外部教材時，保留來源作者及網址。資料屬 legacy-unverified 是尚未逐段審核、版本未標示的舊課程筆記：可以用來回答，但選單名稱或步驟可能因 4.2／5.0 而不同，要提醒同學介面若對不上就告訴你版本。"
+    configured_version = os.getenv("KB_VERSION", "")
+    if configured_version:
+        version_rule += f"\n課程預設版本為 Blender {configured_version}；學生明確指定版本時以學生版本為準。"
+    return (text or PLAIN_PROMPT) + (FOLLOWUP_RULE if _followup.get() else "") + version_rule
 
 
 WAIT_MSG = "🔎 這題課程資料裡還沒有 我上網找一下 等我等我~" if PERSONA else "🔎 課程資料裡還沒有這題，我上網找一下資料，請稍等～"
@@ -116,7 +120,7 @@ ERROR_MSG = ("哎呀 我的腦袋暫時當機了XD 等一下再問一次 或先�
 
 KB_FOUND = """
 
-以下是課程知識庫中跟這個問題有關的資料（由老師和助教整理）：
+以下是知識庫中與問題相關的資料（來源及審核狀態以各段標示為準）：
 {context}
 
 使用資料的規則：
@@ -129,8 +133,10 @@ LOCAL_RULES = """請只根據上面的【課程資料】回答【學生的問題
 1. 資料裡的步驟、快捷鍵、選單名稱要照資料寫，不可以改成別的按鍵
 2. 資料沒有提到的步驟、按鍵、功能，一律不要寫，不要自己補充或延伸
 3. 用繁體中文；每個步驟獨立一行、用 1. 2. 3. 編號，不要寫成一整段
-4. 不要寫「資料1」這種編號"""
-LOCAL_PARTIAL = "\n5. 資料只能回答一部分時，只回答那部分，最後加一句「其他細節課程資料沒寫到，有什麼問題可以再問小樽喔」"
+4. 不要寫「資料1」這種編號
+5. 不得混用不同 Blender 版本的操作；若涉及操作但版本未知，先問版本
+6. 使用外部教材時，保留來源作者及網址；不要聲稱已經教師審核"""
+LOCAL_PARTIAL = "\n7. 資料只能回答一部分時，只回答那部分，最後加一句「其他細節課程資料沒寫到，有什麼問題可以再問小樽喔」"
 # 小模型照「範例」學格式比照規則學得好；範例內容故意跟 Blender 操作無關，避免被抄進答案
 LOCAL_TONE = """
 5. 第一句直接講最可能的原因和解法，不要開場白、不要安撫的話
@@ -205,7 +211,7 @@ WEB_PROMPT = """
 - 網頁內容互相矛盾或明顯過時（例如 Blender 2.7 以前的介面）時，以新版 Blender 為準並在回答中提醒
 - found 為 false 時，answer 照樣用你的一般知識回答，但要說明網路上沒找到可靠資料、建議問小樽；note 留空字串"""
 
-kb = KnowledgeBase()
+kb = LayeredKnowledgeBase()   # 先查已核對資料，不夠貼題才退回 knowledge/ 舊筆記
 
 intents = discord.Intents.default()
 intents.message_content = True

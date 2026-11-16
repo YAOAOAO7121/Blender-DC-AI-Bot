@@ -1,0 +1,19 @@
+[
+  {
+    "url": "https://en.wikibooks.org/wiki/Blender_3D:_Noob_to_Pro/Normals_and_Shading",
+    "author": "Wikibooks contributors",
+    "license": "CC-BY-SA-4.0",
+    "license_url": "https://en.wikibooks.org/wiki/Wikibooks:Copyrights",
+    "applicable_version": "2.63",
+    "status": "excluded_from_answer_index",
+    "reason": "原頁標示 Blender 2.63，不能冒充 4.2 或 5.0 教學"
+  },
+  {
+    "url": "https://www.katsbits.com/bevel/",
+    "author": "KatsBits",
+    "license": "未確認可全文轉存",
+    "applicable_version": "原文涵蓋舊版本；4.2/5.0 尚待核對",
+    "status": "link_only",
+    "reason": "保留延伸閱讀連結，不轉存全文或讓 AI 當作版本操作依據"
+  }
+]

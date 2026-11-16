@@ -1,0 +1,361 @@
+[
+  {
+    "id": "apply42",
+    "versions": [
+      "4.2"
+    ],
+    "topic": "02_物件基本操作",
+    "status": "source_checked",
+    "source_ids": [
+      "apply42-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/id/4.2/scene_layout/object/editing/apply.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/4.2/02_套用縮放.md"
+  },
+  {
+    "id": "mirror50",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "06_修改器",
+    "status": "source_checked",
+    "source_ids": [
+      "mirror50-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/en/5.0/modeling/modifiers/generate/mirror.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/5.0/06_鏡像接縫.md"
+  },
+  {
+    "id": "subdiv42",
+    "versions": [
+      "4.2"
+    ],
+    "topic": "06_修改器",
+    "status": "source_checked",
+    "source_ids": [
+      "subdiv42-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/en/4.2/modeling/modifiers/generate/subdivision_surface.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/4.2/06_細分與支撐線.md"
+  },
+  {
+    "id": "modifiers50",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "06_修改器",
+    "status": "source_checked",
+    "source_ids": [
+      "modifiers50-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/en/5.0/modeling/modifiers/introduction.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/5.0/06_修改器順序.md"
+  },
+  {
+    "id": "uv42",
+    "versions": [
+      "4.2"
+    ],
+    "topic": "08_UV展開與貼圖",
+    "status": "source_checked",
+    "source_ids": [
+      "uv42-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/sl/4.2/modeling/meshes/editing/uv.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/4.2/08_UV展開排錯.md"
+  },
+  {
+    "id": "uv50",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "08_UV展開與貼圖",
+    "status": "source_checked",
+    "source_ids": [
+      "uv50-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/id/5.0/modeling/meshes/editing/uv.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/5.0/08_UV展開排錯.md"
+  },
+  {
+    "id": "boolean42",
+    "versions": [
+      "4.2"
+    ],
+    "topic": "06_修改器",
+    "status": "source_checked",
+    "source_ids": [
+      "boolean42-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/id/4.2/modeling/modifiers/generate/booleans.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/4.2/06_布林運算排錯.md"
+  },
+  {
+    "id": "boolean50",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "06_修改器",
+    "status": "source_checked",
+    "source_ids": [
+      "boolean50-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/id/5.0/modeling/modifiers/generate/booleans.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/5.0/06_布林運算排錯.md"
+  },
+  {
+    "id": "normals42",
+    "versions": [
+      "4.2"
+    ],
+    "topic": "03_建模入門",
+    "status": "source_checked",
+    "source_ids": [
+      "normals42-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/sr/4.2/modeling/meshes/editing/mesh/normals.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/4.2/03_法線方向.md"
+  },
+  {
+    "id": "normals50",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "03_建模入門",
+    "status": "source_checked",
+    "source_ids": [
+      "normals50-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/sl/5.0/modeling/meshes/editing/mesh/normals.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/5.0/03_法線方向.md"
+  },
+  {
+    "id": "color42",
+    "versions": [
+      "4.2"
+    ],
+    "topic": "12_影音知識與色彩管理",
+    "status": "source_checked",
+    "source_ids": [
+      "color42-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/de/4.2/render/color_management.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/4.2/12_色彩與資料貼圖.md"
+  },
+  {
+    "id": "color50",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "12_影音知識與色彩管理",
+    "status": "source_checked",
+    "source_ids": [
+      "color50-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/en/5.0/render/color_management/displays_views.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/5.0/12_AgX與曝光.md"
+  },
+  {
+    "id": "missing50",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "18_檔案管理與匯入匯出",
+    "status": "source_checked",
+    "source_ids": [
+      "missing50-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0-or-later",
+    "urls": [
+      "https://docs.blender.org/manual/en/5.0/interface/window_system/topbar.html"
+    ],
+    "attribution": "Blender Documentation Team",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "版本/5.0/18_找回遺失外部檔案.md"
+  },
+  {
+    "id": "wiki-geometry",
+    "versions": [
+      "4.2",
+      "5.0"
+    ],
+    "topic": "04_圖學基礎與拓樸觀念",
+    "status": "source_checked",
+    "source_ids": [
+      "wiki-geometry-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0",
+    "urls": [
+      "https://en.wikibooks.org/wiki/Blender_3D:_Noob_to_Pro/3D_Geometry"
+    ],
+    "attribution": "Wikibooks contributors",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "通用知識/04_座標與原點概念.md"
+  },
+  {
+    "id": "wiki-transform",
+    "versions": [
+      "4.2",
+      "5.0"
+    ],
+    "topic": "04_圖學基礎與拓樸觀念",
+    "status": "source_checked",
+    "source_ids": [
+      "wiki-transform-source"
+    ],
+    "language": "zh-Hant",
+    "license": "CC-BY-SA-4.0",
+    "urls": [
+      "https://en.wikibooks.org/wiki/Blender_3D:_Noob_to_Pro/Coordinate_Transformations"
+    ],
+    "attribution": "Wikibooks contributors",
+    "review": "文字依來源核對；未執行 Blender GUI 實測",
+    "path": "通用知識/04_移動旋轉縮放概念.md"
+  },
+  {
+    "id": "existing-03_網格與模式-4.2",
+    "versions": [
+      "4.2",
+      "5.0"
+    ],
+    "topic": "03_建模入門",
+    "status": "source_checked",
+    "urls": [
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://projects.blender.org/blender/blender-manual/raw/branch/blender-v4.2-release/manual/modeling/meshes/introduction.rst",
+      "https://projects.blender.org/blender/blender-manual/raw/branch/blender-v5.0-release/manual/modeling/meshes/introduction.rst"
+    ],
+    "license": "CC-BY-SA-4.0-or-later",
+    "source_ids": [],
+    "language": "zh-Hant",
+    "attribution": "Blender Documentation Team",
+    "path": "通用知識/03_網格與模式.md"
+  },
+  {
+    "id": "existing-11_Eevee基本原理-4.2",
+    "versions": [
+      "4.2",
+      "5.0"
+    ],
+    "topic": "11_渲染",
+    "status": "source_checked",
+    "urls": [
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://projects.blender.org/blender/blender-manual/raw/branch/blender-v4.2-release/manual/render/eevee/introduction.rst",
+      "https://projects.blender.org/blender/blender-manual/raw/branch/blender-v5.0-release/manual/render/eevee/introduction.rst"
+    ],
+    "license": "CC-BY-SA-4.0-or-later",
+    "source_ids": [],
+    "language": "zh-Hant",
+    "attribution": "Blender Documentation Team",
+    "path": "通用知識/11_Eevee基本原理.md"
+  },
+  {
+    "id": "existing-13_合成器入門-4.2",
+    "versions": [
+      "4.2"
+    ],
+    "topic": "13_後製與合成",
+    "status": "source_checked",
+    "urls": [
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://projects.blender.org/blender/blender-manual/raw/branch/blender-v4.2-release/manual/compositing/introduction.rst"
+    ],
+    "license": "CC-BY-SA-4.0-or-later",
+    "source_ids": [],
+    "language": "zh-Hant",
+    "attribution": "Blender Documentation Team",
+    "path": "版本/4.2/13_合成器入門.md"
+  },
+  {
+    "id": "existing-13_合成器入門-5.0",
+    "versions": [
+      "5.0"
+    ],
+    "topic": "13_後製與合成",
+    "status": "source_checked",
+    "urls": [
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://projects.blender.org/blender/blender-manual/raw/branch/blender-v5.0-release/manual/compositing/introduction.rst"
+    ],
+    "license": "CC-BY-SA-4.0-or-later",
+    "source_ids": [],
+    "language": "zh-Hant",
+    "attribution": "Blender Documentation Team",
+    "path": "版本/5.0/13_合成器入門.md"
+  }
+]

@@ -1,0 +1,494 @@
+[
+  {
+    "original_path": "knowledge\\00_課程資訊.md",
+    "new_path": "待審核/原有筆記/_00_課程資訊.md",
+    "sha256": "9d9940f1e4bac12a406b210e47d8e99b3ce89515863a6033d8b3d254312458d6",
+    "bytes": 4315,
+    "language": "zh-Hant",
+    "version_claims": [],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\01_介面與視角操作.md",
+    "new_path": "待審核/原有筆記/_01_介面與視角操作.md",
+    "sha256": "98845e0a54c99de4fcbbd378c4c13a6451d25cc282b958ca25f35ccf1d680fdb",
+    "bytes": 1713,
+    "language": "zh-Hant",
+    "version_claims": [],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\02_物件基本操作.md",
+    "new_path": "待審核/原有筆記/_02_物件基本操作.md",
+    "sha256": "402944e669ec38725faa13e8fd4857fc68cfe0d746a4f25bcc5119241cb36899",
+    "bytes": 2415,
+    "language": "zh-Hant",
+    "version_claims": [],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\03_建模入門.md",
+    "new_path": "待審核/原有筆記/_03_建模入門.md",
+    "sha256": "48f54ea05f0b8a5673363e52f63aac4e72190d341a3ce3c530b2236061071475",
+    "bytes": 1728,
+    "language": "zh-Hant",
+    "version_claims": [],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\04_圖學基礎與拓樸觀念.md",
+    "new_path": "待審核/原有筆記/_04_圖學基礎與拓樸觀念.md",
+    "sha256": "e68e51424e92c4c0b34437b82110a122ee94ddf2aee78c4897ac62b8acb0575c",
+    "bytes": 4349,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\05_建模進階工具.md",
+    "new_path": "待審核/原有筆記/_05_建模進階工具.md",
+    "sha256": "dac47bea5d00a8adb1bea7ce9fa30a66956de6106d892b2f5d6acccedbdddb4d",
+    "bytes": 6522,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.1",
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\06_修改器.md",
+    "new_path": "待審核/原有筆記/_06_修改器.md",
+    "sha256": "085f24d173d96d168b988a15b583da7ba2e8c36796734d94d9c8e8403b278b73",
+    "bytes": 7416,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.5",
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\07_材質與著色器.md",
+    "new_path": "待審核/原有筆記/_07_材質與著色器.md",
+    "sha256": "dae6577fd84823342569aab11eed9bea2f316f355175081308c46a2a6561d958",
+    "bytes": 8098,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.0",
+      "4.1",
+      "4.2",
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\08_UV展開與貼圖.md",
+    "new_path": "待審核/原有筆記/_08_UV展開與貼圖.md",
+    "sha256": "a4a9368cc1c4e70f4aef4814fc731db800bd28d6fec591d088b27316e8d574b5",
+    "bytes": 6741,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\09_打光.md",
+    "new_path": "待審核/原有筆記/_09_打光.md",
+    "sha256": "bfdae699d050b3d428c01551ce4277bff6bc7bbccf686e41b216ca08f73ca923",
+    "bytes": 5413,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.0",
+      "4.2",
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\10_攝影機.md",
+    "new_path": "待審核/原有筆記/_10_攝影機.md",
+    "sha256": "ca2d55e6607a8dca0c321b83ef726473f21f08690af187b333eae86354e283e5",
+    "bytes": 6349,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\11_渲染.md",
+    "new_path": "待審核/原有筆記/_11_渲染.md",
+    "sha256": "2c274677b8b222257ae7cc9a412573c3dbf2015a03792d435c7d77668a3cb84d",
+    "bytes": 6086,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.2",
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\12_影音知識與色彩管理.md",
+    "new_path": "待審核/原有筆記/_12_影音知識與色彩管理.md",
+    "sha256": "902e0b950633e66c2c3c5f312cfd3b552c64f0866ece6fc2e896dae466867112",
+    "bytes": 5842,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.0",
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\13_後製與合成.md",
+    "new_path": "待審核/原有筆記/_13_後製與合成.md",
+    "sha256": "58697ad3f73dc6cc16538abc614345dd01009e3956ef21b152887aeba14ddfae",
+    "bytes": 6372,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.2",
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\14_動畫基礎.md",
+    "new_path": "待審核/原有筆記/_14_動畫基礎.md",
+    "sha256": "b2b2c6f912e48b20f2319fb820642a118dab9004c30c5766c92846955993306a",
+    "bytes": 7355,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.1",
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\15_骨架綁定.md",
+    "new_path": "待審核/原有筆記/_15_骨架綁定.md",
+    "sha256": "c662149fba12c9fddb389b3d67db1a8d4c1b484d1db9f58509b974e8f72084df",
+    "bytes": 6521,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\16_曲線與文字.md",
+    "new_path": "待審核/原有筆記/_16_曲線與文字.md",
+    "sha256": "9934ecfac11fca2e4ef758d1e8ce0f9c98bcad911a070144383b021f6571960b",
+    "bytes": 3177,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\17_數位雕塑.md",
+    "new_path": "待審核/原有筆記/_17_數位雕塑.md",
+    "sha256": "58a07242c3ed00d6c3ccdd92e8392aafa18278d3b857f0061b0ebdddce7bd489",
+    "bytes": 4080,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.3",
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\18_檔案管理與匯入匯出.md",
+    "new_path": "待審核/原有筆記/_18_檔案管理與匯入匯出.md",
+    "sha256": "e67f89a4b8f63905bbd7578f2b2dc0f7672e8d198ce9c7223e35a1f4bef95a40",
+    "bytes": 4718,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.1",
+      "4.2",
+      "4.2 LTS",
+      "4.5 LTS",
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\19_生成式AI轉3D與網格修復.md",
+    "new_path": "待審核/原有筆記/_19_生成式AI轉3D與網格修復.md",
+    "sha256": "21fb6eff78496f0e15e95e3ab690ca0b2dcd3cba9150147f9f2920edee2512b3",
+    "bytes": 5466,
+    "language": "zh-Hant",
+    "version_claims": [
+      "2.0",
+      "4.2"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\20_實景擷取_攝影測量與3DGS.md",
+    "new_path": "待審核/原有筆記/_20_實景擷取_攝影測量與3DGS.md",
+    "sha256": "b5fc77aee20259b1f4dbd993aedb4baa7383681e0998dd1b43bb1f9ef519c268",
+    "bytes": 5466,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.2"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\21_幾何節點入門.md",
+    "new_path": "待審核/原有筆記/_21_幾何節點入門.md",
+    "sha256": "967243b2f8024b42f0b9d4c047376cc7d55e0d8544b902ce1e74b5b449945e35",
+    "bytes": 2950,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\22_物理模擬與粒子.md",
+    "new_path": "待審核/原有筆記/_22_物理模擬與粒子.md",
+    "sha256": "be4e021c1e312ca42f01ad5dfa1f1715fc1f6455ae585e90c44d19cc688e67a8",
+    "bytes": 4163,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\23_介面工作區與大綱.md",
+    "new_path": "待審核/原有筆記/_23_介面工作區與大綱.md",
+    "sha256": "2819df6d5fa53f050b17309825d5d74469e1b8b94efade9708e51cd1e96e5ed4",
+    "bytes": 4854,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\24_安裝設定與效能.md",
+    "new_path": "待審核/原有筆記/_24_安裝設定與效能.md",
+    "sha256": "2fc5c2011eeccd00752d2d295893efd9e4c49201d814a627ddcd85d9e29da86c",
+    "bytes": 4514,
+    "language": "zh-Hant",
+    "version_claims": [
+      "2.7",
+      "2.8",
+      "4.1",
+      "4.2",
+      "4.2 LTS",
+      "4.5 LTS",
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\25_快捷鍵總表.md",
+    "new_path": "待審核/原有筆記/_25_快捷鍵總表.md",
+    "sha256": "a02a3434bf6d99c67eebc2e8bd9420e33ac979686182513c54044fb030445fdb",
+    "bytes": 4228,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.x",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\26_名詞中英對照.md",
+    "new_path": "待審核/原有筆記/_26_名詞中英對照.md",
+    "sha256": "376202bb5fa67373ff2c23ab327d5d9f0b01beeab610fe94259ed4825c6b4500",
+    "bytes": 4973,
+    "language": "zh-Hant",
+    "version_claims": [],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\98_常見問題_補充.md",
+    "new_path": "待審核/原有筆記/_98_常見問題_補充.md",
+    "sha256": "4b86ccc11872ffdb13a5dedcd3c2aac91144eed839fcbed9f5644716e096ea54",
+    "bytes": 5587,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.2",
+      "4.5"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\99_常見問題.md",
+    "new_path": "待審核/原有筆記/_99_常見問題.md",
+    "sha256": "7597ea4ec5f76364fa0ed8cf502c298524f6800ff4bc21cbb8f0934cd1088c5a",
+    "bytes": 1201,
+    "language": "zh-Hant",
+    "version_claims": [],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  },
+  {
+    "original_path": "knowledge\\_說明.md",
+    "new_path": "待審核/原有筆記/_說明.md",
+    "sha256": "9592b2c7a9c28213b3beb058449a1f0f9e68275e3074249ab0af2a737a75fd07",
+    "bytes": 1238,
+    "language": "zh-Hant",
+    "version_claims": [
+      "4.2 LTS",
+      "4.x",
+      "5.0",
+      "5.x"
+    ],
+    "status": "needs-review",
+    "authority": "使用者專案原有筆記；_說明.md 記載多份為 AI 產生待審核",
+    "license": "未見逐文件授權；僅供此專案內部整理，不推定可對外散布",
+    "source_urls": [],
+    "inspected_at": "2026-11-02 Asia/Taipei"
+  }
+]
