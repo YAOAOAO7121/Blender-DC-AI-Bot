@@ -591,17 +591,34 @@ Step 8 '建立啟動／停止按鈕'
 $StartBat = Join-Path $Root 'start-bot.bat'
 # 舊版的中文檔名 → 刪掉，捷徑會改指到新的
 foreach ($old in @('啟動機器人.bat', '停止機器人.bat')) { Remove-Item (Join-Path $Root $old) -ErrorAction SilentlyContinue }
+# 找機器人一律看「程序的命令列」，不看視窗標題：Win11 預設用「Windows 終端機」開 .bat，
+# 這時 tasklist /v 和 taskkill /fi "windowtitle eq …" 都看不到 cmd 的標題，防呆會整個失效
+# （按解除只關掉 python、迴圈 10 秒後自己重開；再按使用又開出第二隻，兩隻搶著回答）。
+# 產生的 .bat 裡，PowerShell 指令內不能有雙引號：cmd 會把雙引號後面的 | 當成自己的管線
+$psFindBot = '$me=(Get-CimInstance Win32_Process -Filter (''ProcessId='' + $PID)).ParentProcessId; ' +
+    '$p=@(Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq ''python.exe'' -and $_.CommandLine -match ''\bbot\.py.?\s*$'') -or ' +
+    '($_.Name -eq ''cmd.exe'' -and $_.CommandLine -match ''start-bot\.bat'' -and $_.ProcessId -ne $me) }); if ($p.Count) { exit 9 }'
+# 照 .env 的 LOCAL_MODEL、LOCAL_CTX 先把本地模型載進顯卡並常駐（keep_alive -1），第一題就不會因為冷啟動而逾時。
+# num_ctx 要和 llm.py 用的一樣，不然 Ollama 會用新的長度再重新載入一次
+$psPreload = '$e=@{}; if (Test-Path .env) { Get-Content .env -Encoding UTF8 | ForEach-Object { if ($_ -match ''^\s*([A-Z_]+)\s*=\s*(.*?)\s*$'') { $e[$Matches[1]]=$Matches[2] } } }; ' +
+    '$m=$e[''LOCAL_MODEL'']; if (-not $m) { $m=''qwen2.5:3b'' }; $u=$e[''OLLAMA_URL'']; if (-not $u) { $u=''http://localhost:11434'' }; ' +
+    '$c=4096; if ($e[''LOCAL_CTX'']) { $c=[int]$e[''LOCAL_CTX''] }; Write-Host (''Loading local model '' + $m + '' into the GPU...''); ' +
+    'try { Invoke-RestMethod -Method Post -Uri ($u + ''/api/generate'') -ContentType ''application/json'' -TimeoutSec 180 ' +
+    '-Body (@{ model=$m; prompt=''''; keep_alive=-1; options=@{ num_ctx=$c } } | ConvertTo-Json) | Out-Null; Write-Host ''Local model ready.'' } ' +
+    'catch { Write-Host (''Could not preload the local model (the bot will load it on the first question): '' + $_.Exception.Message) }'
 $batLines = @(
     '@echo off',
     'cd /d "%~dp0"',
-    'rem Already running? Two copies would answer every question twice.',
-    'tasklist /v /fo csv /fi "imagename eq cmd.exe" | find /i "Blender AI Bot" >nul && (',
+    'rem Already running (or waiting to restart)? Two copies would answer every question twice.',
+    "powershell -NoProfile -Command `"$psFindBot`"",
+    'if errorlevel 9 (',
     '  echo The bot is already running. Use the stop button first if you want to restart it.',
     '  timeout /t 5',
     '  exit /b 0',
     ')',
     'set PYTHONUTF8=1',
     'title Blender AI Bot',
+    "powershell -NoProfile -Command `"$psPreload`"",
     ':loop',
     '".venv\Scripts\python.exe" bot.py',
     'if errorlevel 3 if not errorlevel 4 (',
@@ -618,13 +635,23 @@ $batLines = @(
 [IO.File]::WriteAllText($StartBat, ($batLines -join "`r`n") + "`r`n", [Text.Encoding]::ASCII)
 Ok "已建立：$StartBat"
 
-# 停止：關掉啟動視窗（連自動重啟一起停），再收掉其他還在跑的 bot.py（例如舊的開關按鈕啟動的）
+# 停止：先關 start-bot.bat 的迴圈（連自動重啟一起停），再收掉還在跑的 bot.py，最後把本地模型移出顯卡。
+# 安裝程式設了 OLLAMA_KEEP_ALIVE=-1，不卸載的話機器人關了模型還是佔著顯卡；按「解除」通常就是想把顯卡拿回來用
 $StopBat = Join-Path $Root 'stop-bot.bat'
+$psUnload = '$e=@{}; if (Test-Path .env) { Get-Content .env -Encoding UTF8 | ForEach-Object { if ($_ -match ''^\s*([A-Z_]+)\s*=\s*(.*?)\s*$'') { $e[$Matches[1]]=$Matches[2] } } }; ' +
+    '$u=$e[''OLLAMA_URL'']; if (-not $u) { $u=''http://localhost:11434'' }; ' +
+    'try { (Invoke-RestMethod -Uri ($u + ''/api/ps'') -TimeoutSec 5).models | ForEach-Object { ' +
+    'Invoke-RestMethod -Method Post -Uri ($u + ''/api/generate'') -ContentType ''application/json'' -TimeoutSec 30 ' +
+    '-Body (@{ model=$_.name; keep_alive=0 } | ConvertTo-Json) | Out-Null; Write-Host (''Unloaded '' + $_.name + '' from the GPU.'') } } catch {}'
 $stopLines = @(
     '@echo off',
+    'cd /d "%~dp0"',
     'taskkill /fi "windowtitle eq Blender AI Bot*" /t /f >nul 2>&1',
-    'rem No double quotes inside the PowerShell command: cmd would treat the | after them as its own pipe',
+    'rem Find the bot by command line, not window title: Windows Terminal hides cmd window titles',
+    'rem No double quotes inside the PowerShell commands: cmd would treat the | after them as its own pipe',
+    'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''cmd.exe'' -and $_.CommandLine -match ''start-bot\.bat'' } | ForEach-Object { taskkill /pid $_.ProcessId /t /f }" >nul 2>&1',
     'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''python.exe'' -and $_.CommandLine -match ''\bbot\.py.?\s*$'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"',
+    "powershell -NoProfile -Command `"$psUnload`"",
     'echo Bot stopped.',
     'timeout /t 3 >nul'
 )

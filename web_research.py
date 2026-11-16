@@ -4,8 +4,11 @@
 單獨測試：python web_research.py Blender 怎麼做頭髮
 """
 import asyncio
+import logging
+import os
 import re
 import sys
+import time
 from urllib.parse import urlparse
 
 import httpx
@@ -29,11 +32,55 @@ OLD_MANUAL = re.compile(r"(docs\.blender\.org/manual/[^/]+/)(\d+\.\d+|dev)/")
 MAX_CHARS_PER_PAGE = 3500
 
 
+# 要用哪些搜尋引擎（ddgs 的 backend，逗號分隔）。預設的 "auto" 一定先查 wikipedia 和 grokipedia：
+# 百科對 Blender 操作題幾乎沒用，wikipedia 還會把地區碼當語言代碼（wt-wt → wt.wikipedia.org）出 DNSError，
+# 而 ddgs 最後只丟出「最後一個」引擎的錯誤，真正的原因（被限流、連不上）就被蓋掉了
+SEARCH_BACKENDS = os.getenv("SEARCH_BACKENDS", "duckduckgo,brave,mojeek,yahoo,startpage").strip() or "auto"
+SEARCH_TIMEOUT = int(os.getenv("SEARCH_TIMEOUT", "10"))   # 每個搜尋引擎最多等幾秒
+
+# 把 ddgs 內部各引擎的錯誤收起來，搜尋失敗時一起印出，才分得出是「真的沒結果」還是「被擋／被限流」
+_engine_errors = []
+
+
+class _EngineErrorLog(logging.Handler):
+    def emit(self, record):
+        if record.args and len(record.args) >= 2 and "Error in engine" in str(record.msg):
+            name, err = record.args[0], record.args[1]
+            _engine_errors.append((time.time(), str(name), f"{type(err).__name__}: {str(err)[:80]}"))
+            del _engine_errors[:-50]
+
+
+_ddgs_log = logging.getLogger("ddgs")
+_ddgs_log.addHandler(_EngineErrorLog(level=logging.INFO))
+_ddgs_log.setLevel(logging.INFO)
+_ddgs_log.propagate = False
+
+
+def _engine_report(since):
+    """這次搜尋期間各引擎出的錯（同一個引擎只列一次）"""
+    seen = {}
+    for t, name, msg in _engine_errors:
+        if t >= since:
+            seen[name] = msg
+    return "；".join(f"{k} → {v}" for k, v in seen.items()) or "各引擎都沒有報錯，只是回傳 0 筆（可能被限流或擋下，回了空白頁）"
+
+
+def _ddgs_search(query, n, region="us-en", kind="text"):
+    d = DDGS(timeout=SEARCH_TIMEOUT)
+    fn = d.videos if kind == "videos" else d.text
+    kw = {"region": region, "max_results": n}
+    if kind == "text":
+        kw["backend"] = SEARCH_BACKENDS        # 影片只有 duckduckgo 一個引擎，不用指定
+    return list(fn(query, **kw) or [])
+
+
 def _search_sync(query, n):
+    start = time.time()
     try:
-        return list(DDGS().text(query, max_results=n) or [])
+        return _ddgs_search(query, n)
     except Exception as e:
-        print(f"[網路搜尋] 失敗：{query}｜{e}")
+        print(f"[網路搜尋] 失敗：{query}｜{type(e).__name__}: {str(e)[:100]}")
+        print(f"[網路搜尋]   各引擎狀況：{_engine_report(start)}")
         return []
 
 
@@ -154,19 +201,13 @@ CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
 
 def _search_region(query, n, region, kind="text"):
+    start = time.time()
     try:
-        d = DDGS()
-        fn = d.videos if kind == "videos" else d.text
-        try:
-            return list(fn(query, region=region, max_results=n) or [])
-        except Exception as e:
-            # ddgs 用 tw-tzh 時會去連不存在的 tzh.wikipedia.org → 改成不限地區再搜一次（標題是中文的才會被採用）
-            if region != "wt-wt" and ("wikipedia" in str(e) or "DNSError" in str(e)):
-                return list(fn(query, region="wt-wt", max_results=n) or [])
-            raise
+        return _ddgs_search(query, n, region, kind)
     except Exception as e:
         if "No results" not in str(e):          # 沒結果是正常的，不用印
-            print(f"[延伸教學] 搜尋失敗：{query}｜{str(e)[:80]}")
+            print(f"[延伸教學] 搜尋失敗：{query}｜{type(e).__name__}: {str(e)[:80]}")
+            print(f"[延伸教學]   各引擎狀況：{_engine_report(start)}")
         return []
 
 

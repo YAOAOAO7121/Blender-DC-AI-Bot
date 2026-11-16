@@ -19,6 +19,7 @@ LOCAL_CTX = int(os.getenv("LOCAL_CTX", "4096"))          # 4GB 顯卡建議 4096
 GEMINI_MODEL = os.getenv("MODEL", "gemini-3.8-flash")
 GEMINI_RETRIES = int(os.getenv("GEMINI_RETRIES", "3"))   # Gemini 忙線（503/429）時最多試幾次
 GEMINI_FALLBACK = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()  # 選填：主模型一直忙線時，最後改用這個模型試一次
+GEMINI_TIMEOUT = float(os.getenv("GEMINI_TIMEOUT", "90"))  # 每次呼叫 Gemini 最多等幾秒；逾時就交給本地模型
 
 _gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -118,21 +119,35 @@ async def local_available():
         return False, []
 
 
+async def _gemini_call(model, contents, config):
+    """呼叫一次 Gemini，超過 GEMINI_TIMEOUT 秒沒回應就放棄。
+    google-genai 預設沒有等待上限，Gemini 偶爾會「完全不回」，不設上限會一直卡住，
+    呼叫端的本地模型備援也永遠輪不到（卡住不算失敗）"""
+    try:
+        return await asyncio.wait_for(
+            _gemini.aio.models.generate_content(model=model, contents=contents, config=config),
+            GEMINI_TIMEOUT)
+    except asyncio.TimeoutError:
+        print(f"[Gemini] {model} 等了 {GEMINI_TIMEOUT:.0f} 秒沒有回應，放棄這次（改用備案）")
+        raise RuntimeError(f"Gemini 逾時（{GEMINI_TIMEOUT:.0f} 秒）") from None
+
+
 async def _gemini_generate(contents, config):
-    """呼叫 Gemini；遇到忙線、額度暫滿這類暫時性錯誤會等一下再重試"""
+    """呼叫 Gemini；遇到忙線、額度暫滿這類暫時性錯誤會等一下再重試。
+    逾時不重試，直接丟出例外，讓呼叫端改用本地模型（再等一次通常也一樣卡）"""
     delay = 2
     for attempt in range(1, GEMINI_RETRIES + 1):
         try:
-            return await _gemini.aio.models.generate_content(
-                model=GEMINI_MODEL, contents=contents, config=config)
+            return await _gemini_call(GEMINI_MODEL, contents, config)
         except Exception as e:
             msg = str(e)
+            if msg.startswith("Gemini 逾時"):
+                raise
             temporary = any(k in msg for k in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED",
                                                "500", "INTERNAL", "overloaded", "high demand"))
             if temporary and attempt == GEMINI_RETRIES and GEMINI_FALLBACK:
                 print(f"[Gemini] {GEMINI_MODEL} 一直忙線，改用備用模型 {GEMINI_FALLBACK}")
-                return await _gemini.aio.models.generate_content(
-                    model=GEMINI_FALLBACK, contents=contents, config=config)
+                return await _gemini_call(GEMINI_FALLBACK, contents, config)
             if not temporary or attempt == GEMINI_RETRIES:
                 raise
             print(f"[Gemini] 暫時無法使用（{msg[:30]}…），{delay} 秒後重試（{attempt}/{GEMINI_RETRIES - 1}）")
