@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+這份檔案是給 Claude Code（claude.ai/code）在這個專案裡寫程式時參考的說明。
 
 ## 這是什麼
 
@@ -37,7 +37,7 @@ python homework_check.py 作業.blend                           # 會在目前�
 
 **`bot.py` 退出碼 3 = 設定錯誤**（沒有 Token、Token 無效、沒開 Message Content Intent）。`start-bot.bat` 遇到其他結束會每 10 秒自動重啟，遇到 3 才停住；新增「重開也沒用」的啟動錯誤時要用 3。
 
-### 知識庫（`knowledge.py`，改版中、尚未 commit）
+### 知識庫（`knowledge.py`）
 
 純 Python 的 BM25（中文 bigram、英文單字、同義詞 `ALIASES`），沒有 embedding。`bot.py` 用 `LayeredKnowledgeBase`，分兩層：
 
@@ -58,7 +58,7 @@ python homework_check.py 作業.blend                           # 會在目前�
 
 ### 其他模組
 
-- **`llm.py`**：用 `httpx` 直接呼叫 Ollama，用 `google-genai` 呼叫 Gemini。模型名稱符合 `THINKING_MODEL`（qwen3、deepseek-r1、magistral）會關掉思考模式並剝掉漏出來的推理；本地輸出用 OpenCC `s2twp` 轉繁體。Gemini 503/429 會重試，可退到 `GEMINI_FALLBACK_MODEL`。
+- **`llm.py`**：用 `httpx` 直接呼叫 Ollama，用 `google-genai` 呼叫 Gemini。模型名稱符合 `THINKING_MODEL`（qwen3、deepseek-r1、magistral）會關掉思考模式並剝掉漏出來的推理；本地輸出用 OpenCC `s2twp` 轉繁體。Gemini 503/429 會重試，可退到 `GEMINI_FALLBACK_MODEL`；每次呼叫最多等 `GEMINI_TIMEOUT` 秒，逾時直接丟出例外，讓呼叫端改用本地模型（卡住不算失敗，不設上限備援永遠輪不到）。
 - **語氣**：`persona/小樽_完整.md` 給 Gemini、`persona/小樽_精簡.md` 給本地小模型，第一行 `# 說明` 不送出，每題重讀。機器人只模仿語氣、**不自稱小樽或老師**；請學生問老師時說「問小樽」。本地模型額外的格式規則在 `bot.py` 的 `LOCAL_RULES`、`LOCAL_TONE`、`LOCAL_PARTIAL`。
 - **`admin.py`**：老師用的斜線指令 `/語氣`（查看／修改／上傳／還原）、`/用詞`、`/試答`。權限是 `REVIEWER_IDS` 或「管理伺服器」，回覆都是 ephemeral，指令同步到每個伺服器。改語氣前自動備份到 `persona/歷史/`；`persona/歷史/` 和 `persona/用詞替換.txt` 是每台電腦自己的設定（gitignored），用詞替換檔不存在時會自動建立預設規則。`try_answer()` 走同樣的查詢與回答流程，但不上網、不存檔、不記錄。
 - **作業健檢**：`homework_check.py` 用 `blender -b --factory-startup --disable-autoexec 檔案.blend --python blend_check/check_blend.py -- out.json out.png` 在暫存資料夾檢查，一次一個（`Semaphore(1)`）。`check_blend.py` 跑在 **Blender 內建的 Python** 裡（`bpy`、`bmesh`），不能 import 專案模組，而且必須只讀不寫。
@@ -73,7 +73,21 @@ python homework_check.py 作業.blend                           # 會在目前�
 
 ## 慣例
 
-- 每個設定都是環境變數，程式裡要有預設值。新增設定時在 `.env.example` 加上中文註解；跟老師有關的也要寫進 `docs/技術文件.md` 的參數總表和 README，讓老師不用改程式就能調整。（知識庫改版新增的 `KB_ROOT`、`KB_VERSION`、`KB_LEGACY_FALLBACK`、`KB_CHECKED_*` 等目前還沒補進 `.env.example`。）
+- 每個設定都是環境變數，程式裡要有預設值。新增設定時在 `.env.example` 加上中文註解；跟老師有關的也要寫進 `docs/技術文件.md` 的參數總表和 README，讓老師不用改程式就能調整。（`KB_ROOT`、`KB_LEGACY_ROOT`、`KB_CHECKED_*` 只寫在 `docs/技術文件.md`，沒放進 `.env.example`，一般不需要改。）
 - `backup/` 是舊版程式快照，`backup_kb_*/` 是知識庫改版前的備份（gitignored）；兩者都不會被 import，搜尋程式碼時忽略、不要修改。
 - 含學生資料或屬於這台電腦的檔案都在 `.gitignore`，不要 commit：`.env`、`questions_log.csv`、`feedback_log.csv`、`answer_index.json`、`review_index.json`、`image_notes.json`、`knowledge_待審核/`、`knowledge_已退回/`、`persona/歷史/`、`persona/用詞替換.txt`、`.venv/`、`knowledge_local_ai/_cache/`。CSV 用 `utf-8-sig` 編碼（Excel 開才不會亂碼）。
 - 同一個 Discord Token 只能在一台電腦上線。不要在老師的機器人正在跑的時候另外啟動一份來測試，否則兩份會同時回答學生。
+
+## Agent skills
+
+### Issue tracker
+
+Issue 記在 GitHub Issues（`YAOAOAO7121/Blender-DC-AI-Bot`），用 `gh` CLI 操作。見 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+使用預設的五個標籤：`needs-triage`、`needs-info`、`ready-for-agent`、`ready-for-human`、`wontfix`。見 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+單一脈絡（single-context）：根目錄一份 `GLOSSARY.md` ＋ `docs/adr/`（目前都還沒有，需要時才由 `/domain-modeling` 建立）。見 `docs/agents/domain.md`。
