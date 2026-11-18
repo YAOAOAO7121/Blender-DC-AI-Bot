@@ -34,7 +34,7 @@ python bot.py
 ### 4. 依顯卡挑本地模型
 | 顯卡記憶體 | 建議模型 | 下載指令 | `LOCAL_CTX` |
 |---|---|---|---|
-| 4–8GB | Qwen 3 4B / 8B | `ollama pull qwen3:4b` | 4096 |
+| 4–8GB | Qwen 3 4B / 8B | `ollama pull qwen3:4b-instruct-2507-q4_K_M` | 4096 |
 | 12–16GB | Qwen 3.5 9B | `ollama pull qwen3.5:9b` | 8192 |
 | 24GB（RTX 3090/4090） | Qwen 3.6 27B | `ollama pull qwen3.6:27b` | 16384 |
 | 32GB（RTX 5090） | Qwen 3.6 35B | `ollama pull qwen3.6:35b` | 16384 |
@@ -42,6 +42,7 @@ python bot.py
 
 - 模型要**整個放進顯卡**：先 `ollama run 模型名稱` 問一句，再開另一個終端機打 `ollama ps`，顯示 `100% GPU` 才 OK；出現 CPU/GPU 混合就換小一級
 - 建議用 Qwen 系列：中文好，而且名稱含 `qwen3` 的模型，程式會自動關掉「思考模式」
+- 4B 請用 `qwen3:4b-instruct-2507-q4_K_M`，**不要用 `qwen3:4b`**：新版的 `qwen3:4b` 是只會思考的版本，思考模式關不掉，回答會一直改用 Gemini（機器人啟動時試答不正常會提醒）
 - **不建議** `gemma4`、`deepseek-r1` 這類會思考的模型（可能把思考過程當答案）；要用 gemma4 得先把它加進 `llm.py` 的 `THINKING_MODEL` 名單
 - `qwen2.5:72b` 也能用（不用改程式），但要約 48GB 顯卡記憶體，而且比 `qwen3.5:27b` 舊、慢
 - 模型名稱更新很快，下載前到 [ollama.com/library](https://ollama.com/library) 確認

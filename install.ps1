@@ -42,7 +42,7 @@ $ModelTiers = @(
     @{ MinGB = 30; Model = 'qwen3.6:35b';  Ctx = 16384; Ratio = '0.5' },
     @{ MinGB = 22; Model = 'qwen3.6:27b';  Ctx = 16384; Ratio = '0.5' },
     @{ MinGB = 11; Model = 'qwen3.5:9b';   Ctx = 8192;  Ratio = '0.7' },
-    @{ MinGB = 5;  Model = 'qwen3:4b';     Ctx = 4096;  Ratio = '0.7' },
+    @{ MinGB = 5;  Model = 'qwen3:4b-instruct-2507-q4_K_M'; Ctx = 4096; Ratio = '0.7' },  # 不要用 qwen3:4b：新版是只會思考的 Thinking-2507
     @{ MinGB = 0;  Model = 'qwen2.5:3b';   Ctx = 4096;  Ratio = '0.7' }
 )
 

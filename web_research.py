@@ -115,6 +115,15 @@ async def search(question, keywords=None):
         queries.append(f"Blender {question}")      # 短問題也用原本的中文搜一次
     print(f"[網路搜尋] 關鍵字：{q}")
     results = await asyncio.gather(*[asyncio.to_thread(_search_sync, x, 6) for x in queries])
+    if not any(results):
+        # 同時送太多查詢容易被限流（回空白頁）→ 等幾秒，一次只送一個再試
+        print("[網路搜尋] 全部 0 筆，等 3 秒後一次一個再試")
+        results = []
+        for x in queries[:2]:
+            await asyncio.sleep(3)
+            results.append(await asyncio.to_thread(_search_sync, x, 6))
+            if results[-1]:
+                break
     seen, items = set(), []
     for r in (x for lst in results for x in lst):
         url = r.get("href") or r.get("url")

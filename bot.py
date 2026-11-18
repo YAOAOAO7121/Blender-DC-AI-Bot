@@ -209,7 +209,9 @@ WEB_PROMPT = """
                                // 例如「## 用粒子系統做頭髮（Hair Particles）」；內容精簡正確、寫出操作步驟與快捷鍵
 }}
 - 網頁內容互相矛盾或明顯過時（例如 Blender 2.7 以前的介面）時，以新版 Blender 為準並在回答中提醒
-- found 為 false 時，answer 照樣用你的一般知識回答，但要說明網路上沒找到可靠資料、建議問小樽；note 留空字串"""
+- found 為 false 時，answer 仍要用你的一般知識，認真回答學生真正問的事（例如學生要程式碼就給程式碼）。
+  「這幾篇網頁沒提到」不等於「做不到」或「網路上沒有資料」，不要這樣說，也不要勸學生改用別的方法來代替回答。
+  不確定的地方說清楚；note 留空字串"""
 
 kb = LayeredKnowledgeBase()   # 先查已核對資料，不夠貼題才退回 knowledge/ 舊筆記
 
@@ -356,11 +358,12 @@ async def answer_from_web(messages, question, thread):
         try:
             keywords = await llm.local_keywords(question)
         except Exception as e:
-            print(f"[搜尋關鍵字] 本地模型產生失敗，改用問題裡的英文術語：{e!r}")
+            print(f"[搜尋關鍵字] 本地模型產生失敗，改用問題裡的英文術語：{e!r}"[:200])
+            keywords = web_research.heuristic_keywords(question) or None
     pages = await web_research.research(question, keywords)
     if not pages:
         answer, engine = await general_answer(messages)
-        return (answer, f"\n\n-# 🔎 網路上沒找到合適的資料，以上是 AI 的一般知識（{engine}），建議再確認或問小樽",
+        return (answer, f"\n\n-# 🔎 網路上沒找到合適的資料，以上是 AI 的一般知識（{md(engine)}），建議再確認或問小樽",
                 "（網路查無資料）")
 
     page_text = "\n\n".join(f"[網頁{i}] {p['title']}\n網址：{p['url']}\n{p['text']}"
@@ -373,18 +376,23 @@ async def answer_from_web(messages, question, thread):
         print(f"[Gemini] 整理網頁失敗，改用本地模型：{e!r}"[:200])
         answer = await local_from_pages(messages, pages)
         extra = ("\n\n🔗 **參考連結**\n" + link_list(pages[:2])
-                 + f"\n-# ⚠️ Gemini 暫時忙線，這次由本地模型 {llm.LOCAL_MODEL} 根據網頁回答，沒有存進知識庫，請再確認")
+                 + f"\n-# ⚠️ Gemini 暫時忙線，這次由本地模型 {md(llm.LOCAL_MODEL)} 根據網頁回答，沒有存進知識庫，請再確認")
         return answer, extra, "[網路・本地模型備援] " + " ".join(p["url"] for p in pages[:2])
     if not data or not data.get("answer"):
         answer, engine = await general_answer(messages)
-        return answer, f"\n\n-# ⚠️ 網路資料整理失敗，以上是 AI 的一般知識（{engine}）", "（整理失敗）"
+        return answer, f"\n\n-# ⚠️ 網路資料整理失敗，以上是 AI 的一般知識（{md(engine)}）", "（整理失敗）"
 
     used = [pages[i - 1] for i in data.get("sources", [])
             if isinstance(i, int) and 1 <= i <= len(pages)] or pages
+    if not data.get("found"):
+        # 搜到的網頁跟題目無關 → 不附那些連結（會誤導），標明是一般知識
+        return (data["answer"],
+                "\n\n-# 🔎 網路上沒找到直接相關的資料，以上是 AI 的一般知識（Gemini），建議再確認或問小樽",
+                "[網路資料不足・一般知識] " + " ".join(p["url"] for p in pages[:2]))
     extra = "\n\n🔗 **參考連結**\n" + link_list(used)
     log_src = "[網路] " + " ".join(p["url"] for p in used)
 
-    if data.get("found") and data.get("note", "").strip():
+    if data.get("note", "").strip():
         saved = save_web_note(data.get("note_title") or question[:20], data["note"], used, question)
         print(f"[知識庫] 新增筆記：{saved}")
         log_src += f"｜存檔：{saved}"
@@ -400,7 +408,7 @@ async def answer_from_web(messages, question, thread):
                 where = "知識庫" if AUTO_SAVE_WEB else "待審核資料夾"
                 extra += f"\n-# 📝 已整理存進{where}：{saved}（尚未經老師審核）"
     elif SHOW_SOURCES:
-        extra += "\n-# 網路資料不足以確定答案，這次沒有存進知識庫"
+        extra += "\n-# 這次沒有整理成筆記存進知識庫"
     return data["answer"], extra, log_src
 
 
@@ -426,6 +434,11 @@ def split_for_chat(answer):
     if any(re.match(r"^(\d+[.、)]|[-*•]|#)", l) or len(l) > 70 for l in lines):
         return None
     return lines
+
+
+def md(text):
+    """模型名稱放進 Discord 訊息前先跳脫：qwen3:4b-instruct-2507-q4_K_M 的 _K_ 會被當成斜體"""
+    return discord.utils.escape_markdown(str(text))
 
 
 async def send_answer(thread, answer, extra):
@@ -829,6 +842,12 @@ async def on_ready():
         ok, names = await llm.local_available()
         if ok:
             print(f"本地模型就緒：{llm.LOCAL_MODEL}")
+            good, info = await llm.local_selftest()
+            if not good:
+                print(f"⚠️ 本地模型 {llm.LOCAL_MODEL} 試答不正常：{info}")
+                print("   這通常是「只會思考」的模型（例如新版的 qwen3:4b），回答會一直改用 Gemini。")
+                print(f"   建議改用不思考的版本：ollama pull {llm.SUGGESTED_INSTRUCT}，"
+                      f"再把 .env 的 LOCAL_MODEL 改成 {llm.SUGGESTED_INSTRUCT}")
         else:
             print(f"⚠️ 找不到本地模型 {llm.LOCAL_MODEL}（Ollama 有開嗎？已安裝：{names or '無'}），會改用 Gemini")
     print(f"語氣：{'小樽（persona/）' if PERSONA else '一般助教'}")
@@ -985,7 +1004,7 @@ async def on_message(message):
                     extra += "\n\n🔗 **參考連結**\n" + "\n".join(
                         f"{i}. <{u}>" for i, u in enumerate(links[:4], 1))
                 if SHOW_SOURCES:
-                    extra += f"\n-# 📚 參考課程資料：{titles}｜🤖 {engine}｜🏷️ {category}"
+                    extra += f"\n-# 📚 參考課程資料：{titles}｜🤖 {md(engine)}｜🏷️ {category}"
                 log_src = f"[{engine}] {titles}"
             elif WEB_SEARCH:
                 answer, extra, log_src = await answer_from_web(messages, query, thread)

@@ -14,7 +14,11 @@ from google.genai import types
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 LOCAL_MODEL = os.getenv("LOCAL_MODEL", "qwen2.5:3b")
-THINKING_MODEL = any(k in LOCAL_MODEL.lower() for k in ("qwen3", "deepseek-r1", "magistral"))
+# 會「思考」、但可以關掉思考的模型（qwen3 混合版等）。instruct 版本來就不思考，不用加 /no_think
+THINKING_MODEL = (any(k in LOCAL_MODEL.lower() for k in ("qwen3", "deepseek-r1", "magistral"))
+                  and "instruct" not in LOCAL_MODEL.lower())
+# 建議的本地模型（不思考的 instruct 版）：新版 Ollama 的 qwen3:4b 已換成「只會思考」的 Thinking-2507，關不掉
+SUGGESTED_INSTRUCT = "qwen3:4b-instruct-2507-q4_K_M"
 LOCAL_CTX = int(os.getenv("LOCAL_CTX", "4096"))          # 4GB 顯卡建議 4096
 GEMINI_MODEL = os.getenv("MODEL", "gemini-3.8-flash")
 GEMINI_RETRIES = int(os.getenv("GEMINI_RETRIES", "3"))   # Gemini 忙線（503/429）時最多試幾次
@@ -81,17 +85,43 @@ async def local_chat(system_prompt, messages, timeout=180):
         raise RuntimeError("本地模型沒有回傳內容")
     if looks_like_thinking(text):
         # 這個模型會把思考過程直接當答案吐出來 → 丟掉，讓呼叫端改用 Gemini
-        raise RuntimeError(f"本地模型 {LOCAL_MODEL} 輸出的是思考過程，不是答案（建議換成 instruct 版本）")
+        raise RuntimeError(f"本地模型 {LOCAL_MODEL} 輸出的是思考過程，不是答案（建議換成 {SUGGESTED_INSTRUCT}）")
     return to_traditional(text)
 
 
+KEYWORD_STOP = {"blender", "keyword", "keywords", "question", "english", "search", "answer"}
+
+
 async def local_keywords(question, timeout=60):
-    """請本地模型把學生的問題轉成英文搜尋關鍵字（Blender 的英文資料多很多）"""
-    prompt = ("把下面這個 Blender 問題轉成「英文」網路搜尋關鍵字：5 到 8 個英文單字或術語，"
-              "用空白隔開，只輸出關鍵字，不要句子、不要解釋。\n\n問題：" + question)
+    """請本地模型把學生的問題轉成英文搜尋關鍵字（Blender 的英文資料多很多）
+    小模型常常亂回（把題目裡的數字抄回來、輸出思考過程），檢查不過就丟出例外，讓呼叫端改用問題裡的英文術語"""
+    prompt = ("把下面這個 Blender 問題翻成英文網路搜尋關鍵字。只輸出一行英文單字或術語，用空白隔開，"
+              "不要句子、不要解釋、不要中文。\n"
+              "範例：模型怎麼左右對稱編輯 → edit mode mirror symmetry modeling\n\n"
+              "問題：" + question)
     text = await _ollama("你只輸出英文搜尋關鍵字。", [{"role": "user", "content": prompt}], 0, 40, timeout)
-    words = re.sub(r"[^A-Za-z0-9+\- ]", " ", text).split()
+    if looks_like_thinking(text):
+        raise RuntimeError("本地模型輸出的是思考過程，不是關鍵字")
+    line = next((l for l in text.splitlines() if l.strip()), "")
+    line = line.rsplit("→", 1)[-1]                       # 模型照抄範例格式「問題 → 關鍵字」時只取箭頭後面
+    words = [w for w in re.sub(r"[^A-Za-z0-9+\- ]", " ", line).split() if re.search(r"[A-Za-z]{2}", w)]
+    if len([w for w in words if w.lower() not in KEYWORD_STOP]) < 2:
+        raise RuntimeError(f"本地模型產生的關鍵字不能用：{text[:40]!r}")
     return " ".join(words[:10])
+
+
+async def local_selftest(timeout=120):
+    """啟動時試答一題，確認本地模型會直接回答，不會把思考過程當答案。回傳 (正常嗎, 說明)"""
+    try:
+        text = await _ollama("你是 Blender 助教，用一句繁體中文回答。",
+                             [{"role": "user", "content": "Blender 復原上一步的快捷鍵是什麼？"}], 0, 120, timeout)
+    except Exception as e:
+        return False, f"試答失敗：{e!r}"[:150]
+    if not text:
+        return False, "沒有回傳答案（通常是只會思考的模型，答案還沒寫就被截斷）"
+    if looks_like_thinking(text):
+        return False, f"輸出的是思考過程：{text[:40]!r}"
+    return True, to_traditional(text)[:40]
 
 
 JUDGE_SYSTEM = "你是資料審核員，只會回答「能」或「不能」，不做任何解釋。"
